@@ -395,6 +395,13 @@
      7) http://127.0.0.1:8787/     双击 html 打开时的本机地图服务
      8) 内置快照 window.EMBEDDED   构建时写进 html 的最近一份数据
      9) localStorage 缓存          上一次成功读到的数据 */
+
+/*__CLOUD_START__*/
+/* 云端仓库地址：由 app\build_map_html.py 从 config\config.json 的 publish 段写入。
+   必须在下面读取 window.CLOUD 之前赋值，否则 CLOUD 恒为 null。 */
+window.CLOUD = null;
+/*__CLOUD_END__*/
+
 const PARAMS = new URLSearchParams(location.search);
 const DATA_URL = PARAMS.get('data') || './data.json';
 /* 云端只读接口（Cloudflare Worker 等）：?api=https://xxx.workers.dev&key=xxx
@@ -429,12 +436,6 @@ function cloudUrls(){
 
 let PROJECTS = [];
 let DATA_META = { updated: '', source: '', count: 0, origin: '' };
-
-/*__CLOUD_START__*/
-/* 云端仓库地址：由 app\build_map_html.py 从 config\config.json 的 publish 段写入。
-   留 null 就只用本地数据和内置快照。 */
-window.CLOUD = null;
-/*__CLOUD_END__*/
 
 /*__EMBEDDED_START__*/
 /* 内置快照：由 app\build_map_html.py 把飞书表格内容直接写进本文件，
