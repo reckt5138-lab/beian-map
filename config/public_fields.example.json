@@ -1,0 +1,62 @@
+{
+  "version": "2.1",
+  "description": "公开数据白名单。只有这里列出的字段会进入 data.json / 网页 / 仓库；其余一律当作敏感字段清空。",
+  "projects_keep": [
+    "name",
+    "classify",
+    "ptype",
+    "build",
+    "stage",
+    "product",
+    "source",
+    "vertical",
+    "filing",
+    "expire",
+    "created",
+    "lat",
+    "lng",
+    "geo",
+    "district"
+  ],
+  "projects_blank": [
+    "addr",
+    "owner",
+    "dept",
+    "area",
+    "customer",
+    "contact",
+    "customerAddr",
+    "customerType",
+    "customerQual",
+    "amount",
+    "discount",
+    "desc",
+    "evac",
+    "lastSign",
+    "lastRecord",
+    "signCount",
+    "quoteTimes",
+    "quoted",
+    "signs"
+  ],
+  "columns_keep": [
+    "项目名称",
+    "产品类型",
+    "审批类型",
+    "项目分类",
+    "项目类型",
+    "建设类型",
+    "项目进度",
+    "项目来源",
+    "备案时间",
+    "失效时间",
+    "创建时间",
+    "是否海外项目",
+    "是否改造项目"
+  ],
+  "derive_district": true,
+  "notes": [
+    "客户姓名 / 联系人 / 电话 / 客户地址 / 合同金额 / 报价 / 跟进与签到明细 / 内部备注 / 业务员与部门 一律不公开。",
+    "坐标精度由 geo 字段标注，估算坐标不得当作准确位置展示。"
+  ]
+}
