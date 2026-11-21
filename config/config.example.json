@@ -1,0 +1,76 @@
+{
+  "base_url": "https://c.jbufa.com",
+  "login": {
+    "username": "",
+    "password": "",
+    "client_id": "web",
+    "client_secret": "111111",
+    "token": "",
+    "cookie": ""
+  },
+  "api": {
+    "token_path": "/oauth/token",
+    "user_info_path": "/user/simple/info",
+    "project_list_path": "/project/conditionsPage",
+    "project_detail_path": "/project-info/select/one/by/{project_id}",
+    "project_follow_path": "/project-follow/{project_id}",
+    "client_path": "/client/{client_id}",
+    "export_field_path": "/project-info/export/record/{tab_type}",
+    "export_path": "/project-info/export"
+  },
+  "crawl": {
+    "tab_types": [100],
+    "status_filter": ["备案项目"],
+    "page_size": 50,
+    "max_pages": 500,
+    "request_interval": 0.15,
+    "retry": 3,
+    "timeout": 60,
+    "with_detail": true,
+    "with_follow": true,
+    "with_client": true
+  },
+  "export": {
+    "output_dir": "output",
+    "file_prefix": "备案项目",
+    "keep_days": 60,
+    "use_field_template": true,
+    "checkin_columns": 50,
+    "extra_fields": []
+  },
+  "schedule": {
+    "enabled": true,
+    "mode": "daily",
+    "time": "02:00",
+    "interval_hours": 24,
+    "run_on_start": false,
+    "save_excel": false
+  },
+  "map": {
+    "enabled": true,
+    "port": 8787,
+    "snapshot": true
+  },
+  "publish": {
+    "github_owner": "",
+    "github_repo": "",
+    "branch": "main"
+  },
+  "feishu": {
+    "enabled": true,
+    "auth_mode": "lark_cli",
+    "app_id": "",
+    "app_secret": "",
+    "api_base": "https://open.feishu.cn",
+    "lark_cli_profile": "",
+    "spreadsheet_token": "",
+    "url": "",
+    "sheet_name": "备案项目",
+    "sheet_id": "",
+    "name": "备案项目每日导出",
+    "folder_token": "",
+    "lark_cli": "",
+    "last_rows": 0,
+    "last_cols": 0
+  }
+}

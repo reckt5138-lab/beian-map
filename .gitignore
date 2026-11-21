@@ -1,0 +1,14 @@
+# 敏感与产物，别提交（提交前确认 credentials.json 没被强制 add）
+credentials.json
+config/credentials.json
+config/deploy.json
+python_path.txt
+run_error.log
+output/
+dist/
+__pycache__/
+*.pyc
+_feishu_upload.csv
+# 生成物：带数据的网页与 JSON 快照（仓库里只放模板 app/map_template.html）
+备案项目地图.html
+projects.json

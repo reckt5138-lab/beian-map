@@ -1,0 +1,80 @@
+{
+  "base_url": "https://c.jbufa.com",
+  "login": {
+    "username": "",
+    "password": "",
+    "client_id": "web",
+    "client_secret": "111111",
+    "token": "",
+    "cookie": ""
+  },
+  "api": {
+    "token_path": "/oauth/token",
+    "user_info_path": "/user/simple/info",
+    "project_list_path": "/project/conditionsPage",
+    "project_detail_path": "/project-info/select/one/by/{project_id}",
+    "project_follow_path": "/project-follow/{project_id}",
+    "client_path": "/client/{client_id}",
+    "export_field_path": "/project-info/export/record/{tab_type}",
+    "export_path": "/project-info/export"
+  },
+  "crawl": {
+    "tab_types": [
+      100
+    ],
+    "status_filter": [
+      "备案项目"
+    ],
+    "page_size": 50,
+    "max_pages": 500,
+    "request_interval": 0.15,
+    "retry": 3,
+    "timeout": 60,
+    "with_detail": true,
+    "with_follow": true,
+    "with_client": true
+  },
+  "export": {
+    "output_dir": "output",
+    "file_prefix": "备案项目",
+    "keep_days": 60,
+    "use_field_template": true,
+    "checkin_columns": 50,
+    "extra_fields": []
+  },
+  "schedule": {
+    "enabled": true,
+    "mode": "daily",
+    "time": "02:00",
+    "interval_hours": 24,
+    "run_on_start": false,
+    "save_excel": false
+  },
+  "map": {
+    "enabled": true,
+    "port": 8787,
+    "snapshot": true
+  },
+  "publish": {
+    "github_owner": "",
+    "github_repo": "",
+    "branch": "main"
+  },
+  "feishu": {
+    "enabled": false,
+    "auth_mode": "app",
+    "app_id": "cli_ab8ae3e157f9dc01",
+    "app_secret": "",
+    "api_base": "https://open.feishu.cn",
+    "lark_cli_profile": "",
+    "spreadsheet_token": "E1AcsZQ2EhT6Vgt9GiHcxmp6ncc",
+    "url": "https://jcntthw4tzwh.feishu.cn/sheets/E1AcsZQ2EhT6Vgt9GiHcxmp6ncc",
+    "sheet_name": "备案项目",
+    "sheet_id": "d154b6",
+    "name": "备案项目每日导出",
+    "folder_token": "",
+    "lark_cli": "C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\Default\\sandbox_envs_dir\\envs\\5b0c0b86-7343-4ecc-ae73-719c8de91cd7\\override_dlcs\\lark-cli.exe",
+    "last_rows": 19,
+    "last_cols": 158
+  }
+}

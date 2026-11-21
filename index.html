@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>北京备案项目地图 · 2026-11-20</title>
+<link rel="stylesheet" href="https://fastly.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root{
+    --bg:#0f172a;
+    --panel:#ffffff;
+    --ink:#0f172a;
+    --ink-2:#475569;
+    --ink-3:#7c8aa0;
+    --line:#e6ebf2;
+    --brand:#1d4ed8;
+    --brand-soft:#eef3ff;
+    --ok:#0f9d58;
+    --warn:#f59e0b;
+    --danger:#e11d48;
+    --expired:#94a3b8;
+    --shadow:0 18px 40px rgba(15,23,42,.14);
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,-apple-system,"Segoe UI",sans-serif;
+    color:var(--ink);background:#eef2f7;overflow:hidden;display:flex;flex-direction:column;
+    -webkit-font-smoothing:antialiased;
+  }
+  .topbar{
+    height:64px;display:flex;align-items:center;gap:18px;
+    padding:0 20px;background:rgba(15,23,42,.96);color:#fff;
+    position:relative;z-index:600;backdrop-filter:blur(8px);flex-shrink:0;
+  }
+  .brand{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .brand .dot{width:10px;height:10px;border-radius:50%;background:#38bdf8;box-shadow:0 0 0 4px rgba(56,189,248,.18);}
+  .brand h1{font-size:17px;margin:0;font-weight:600;letter-spacing:.5px;}
+  .brand small{display:block;font-size:11px;color:#94a3b8;font-weight:400;margin-top:2px;letter-spacing:.4px;}
+  .stats{display:flex;gap:8px;flex-wrap:nowrap;overflow:hidden;}
+  .stat{
+    display:flex;align-items:baseline;gap:6px;padding:6px 12px;border-radius:9px;
+    background:rgba(255,255,255,.08);font-size:12px;color:#cbd5e1;white-space:nowrap;
+  }
+  .stat b{font-size:16px;color:#fff;font-weight:600;}
+  .stat.danger b{color:#fb7185;}
+  .stat.warn b{color:#fbbf24;}
+  .topbar .hint{margin-left:auto;font-size:11.5px;color:#8ea0b6;white-space:nowrap;}
+
+  .stage{flex:1;min-height:0;display:flex;position:relative;}
+  #map{flex:1;height:100%;background:#e8edf3;}
+  .leaflet-container{font-family:inherit;background:#e8edf3;}
+
+  aside{
+    width:392px;height:100%;background:var(--panel);border-left:1px solid var(--line);
+    display:flex;flex-direction:column;position:relative;z-index:500;box-shadow:-8px 0 24px rgba(15,23,42,.05);
+  }
+  .p-head{padding:16px 16px 10px;border-bottom:1px solid var(--line);}
+  .search{
+    display:flex;align-items:center;gap:8px;background:#f4f7fc;border:1px solid #e2e9f4;
+    border-radius:10px;padding:9px 12px;
+  }
+  .search svg{width:15px;height:15px;fill:#93a4b8;flex-shrink:0;}
+  .search input{
+    border:0;background:transparent;outline:none;flex:1;font-size:13px;color:var(--ink);
+    font-family:inherit;
+  }
+  .search input::placeholder{color:#a7b4c6;}
+  .chips{display:flex;gap:7px;margin-top:11px;flex-wrap:wrap;}
+  .chip{
+    border:1px solid #e2e9f4;background:#fff;color:var(--ink-2);font-size:12px;
+    padding:6px 11px;border-radius:999px;cursor:pointer;font-family:inherit;transition:.15s;
+  }
+  .chip:hover{border-color:#c9d8f2;color:var(--brand);}
+  .chip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:500;}
+  .chip .n{opacity:.7;margin-left:3px;font-size:11px;}
+
+  .list{flex:1;overflow-y:auto;padding:10px 10px 20px;}
+  .list::-webkit-scrollbar{width:8px;}
+  .list::-webkit-scrollbar-thumb{background:#dbe3ee;border-radius:8px;}
+  .row{
+    padding:11px 12px;border-radius:11px;cursor:pointer;border:1px solid transparent;
+    transition:background .15s,border-color .15s;margin-bottom:2px;
+  }
+  .row:hover{background:#f6f9fe;border-color:#e6eefb;}
+  .row.on{background:var(--brand-soft);border-color:#cddcfb;}
+  .row-top{display:flex;gap:8px;align-items:flex-start;}
+  .idx{
+    width:19px;height:19px;border-radius:6px;background:#eef2f8;color:#64748b;font-size:11px;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;font-weight:600;
+  }
+  .row.on .idx{background:#dbe8ff;color:var(--brand);}
+  .row-name{font-size:13px;line-height:1.45;color:var(--ink);font-weight:500;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+  .row-meta{font-size:11.5px;color:var(--ink-3);margin-top:5px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+  .pill{
+    font-size:11px;padding:2px 7px;border-radius:6px;font-weight:600;white-space:nowrap;
+  }
+  .p-ok{background:#e8f7ef;color:#0b7a46;}
+  .p-warn{background:#fff4e2;color:#b26b09;}
+  .p-danger{background:#ffe9ee;color:#be123c;}
+  .p-exp{background:#eff2f7;color:#7b8798;}
+  .tag-out{background:#f1f3f7;color:#8892a3;font-size:10.5px;padding:2px 6px;border-radius:5px;}
+
+  /* ====== 悬停提示 ====== */
+  .leaflet-tooltip.proj-tip{
+    background:#0f172a;border:0;border-radius:12px;padding:0;color:#fff;
+    box-shadow:0 16px 34px rgba(2,8,23,.34);width:290px;min-width:290px;max-width:290px;
+    white-space:normal;box-sizing:border-box;
+  }
+  .leaflet-tooltip.proj-tip:before{border-top-color:#0f172a;}
+  .leaflet-tooltip-right.proj-tip:before{border-right-color:#0f172a;}
+  .leaflet-tooltip-left.proj-tip:before{border-left-color:#0f172a;}
+  .leaflet-tooltip-bottom.proj-tip:before{border-bottom-color:#0f172a;}
+  .tip{padding:12px 14px;}
+  .tip h4{margin:0 0 9px;font-size:13px;line-height:1.5;font-weight:600;color:#fff;}
+  .tip .l{display:flex;gap:7px;font-size:11.8px;line-height:1.6;color:#b7c3d6;margin-top:4px;}
+  .tip .l span:first-child{color:#7f8fa6;flex-shrink:0;}
+  .tip .l b{color:#fff;font-weight:500;}
+  .tip .alert{
+    margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.12);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  .tip .alert .t{font-size:11.5px;color:#93a3ba;}
+  .tip-tip{font-size:11px;color:#7e8fa6;margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.1);}
+  .leaflet-popup.proj-card{margin-bottom:6px;}
+  .leaflet-popup.proj-card .leaflet-popup-content-wrapper{
+    background:#0f172a;border-radius:13px;padding:0;color:#fff;
+    box-shadow:0 18px 40px rgba(2,8,23,.42);
+  }
+  .leaflet-popup.proj-card .leaflet-popup-content{margin:0;width:290px !important;}
+  .leaflet-popup.proj-card .leaflet-popup-tip{background:#0f172a;box-shadow:none;}
+  .leaflet-popup.proj-card .leaflet-popup-close-button{display:none;}
+  .tip-menu{margin-top:9px;padding-top:8px;border-top:1px solid rgba(255,255,255,.12);}
+  .tip-go{
+    padding:9px 10px;border-radius:8px;cursor:pointer;
+    background:rgba(255,255,255,.09);color:#dbe7ff;
+    display:flex;align-items:center;gap:8px;
+    font-size:12px;font-weight:600;letter-spacing:.3px;transition:.15s;
+  }
+  .tip-go:hover{background:rgba(96,165,250,.26);color:#fff;}
+  .tip-go svg{width:14px;height:14px;fill:#9fc0ff;flex-shrink:0;}
+  .tip-go .arrow{margin-left:auto;font-size:15px;line-height:1;opacity:.8;font-weight:400;}
+  .tip .big{font-size:15px;font-weight:700;}
+  .c-ok{color:#4ade80;} .c-warn{color:#fbbf24;} .c-danger{color:#fb7185;} .c-exp{color:#94a3b8;}
+
+  /* ====== 详情抽屉 ====== */
+  .drawer{
+    position:absolute;top:0;right:0;width:392px;height:100%;background:var(--panel);
+    z-index:520;transform:translateX(102%);transition:transform .32s cubic-bezier(.4,.0,.2,1);
+    box-shadow:var(--shadow);display:flex;flex-direction:column;border-left:1px solid var(--line);
+  }
+  .drawer.open{transform:translateX(0);}
+  .d-head{padding:14px 16px 12px;border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:flex-start;}
+  .back{
+    width:30px;height:30px;border-radius:8px;border:1px solid #e2e9f4;background:#fff;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .back:hover{background:#f6f9fe;border-color:#c9d8f2;}
+  .back svg{width:14px;height:14px;fill:#64748b;}
+  .d-title{font-size:14px;font-weight:600;line-height:1.5;flex:1;color:var(--ink);}
+  .d-body{flex:1;overflow-y:auto;padding:14px 16px 28px;}
+  .d-body::-webkit-scrollbar{width:8px;}
+  .d-body::-webkit-scrollbar-thumb{background:#dbe3ee;border-radius:8px;}
+
+  .count{
+    border-radius:14px;padding:14px 16px;background:linear-gradient(135deg,#f7faff,#eef4ff);
+    border:1px solid #e2ecfd;
+  }
+  .count .k{font-size:11.5px;color:#7183a0;letter-spacing:.5px;}
+  .count .v{display:flex;align-items:baseline;gap:8px;margin-top:4px;}
+  .count .v b{font-size:34px;font-weight:700;line-height:1;letter-spacing:-1px;}
+  .count .v i{font-style:normal;font-size:13px;color:var(--ink-2);}
+  .count .bar{height:6px;border-radius:6px;background:#dfe8f6;margin-top:12px;overflow:hidden;}
+  .count .bar > span{display:block;height:100%;border-radius:6px;transition:width .5s;}
+  .count .tk{display:flex;justify-content:space-between;font-size:11px;color:#8496b0;margin-top:7px;}
+
+  .acts{margin-top:12px;}
+  .act{
+    display:flex;align-items:center;justify-content:center;gap:7px;padding:11px 14px;
+    border-radius:11px;font-size:13px;font-weight:600;color:#fff;text-decoration:none;
+    background:linear-gradient(135deg,#16a2e0,#0b74e5);
+    box-shadow:0 6px 16px rgba(11,116,229,.26);transition:.18s;
+  }
+  .act:hover{filter:brightness(1.05);transform:translateY(-1px);box-shadow:0 9px 20px rgba(11,116,229,.32);}
+  .act svg{width:15px;height:15px;fill:#fff;opacity:.95;flex-shrink:0;}
+  .act-note{font-size:11px;color:#98a5b8;margin-top:7px;text-align:center;line-height:1.5;}
+
+  .sec{margin-top:20px;}
+  .sec h5{
+    font-size:11.5px;color:#8496b0;font-weight:600;letter-spacing:1px;margin:0 0 10px;
+    text-transform:uppercase;
+  }
+  .kv{display:grid;grid-template-columns:88px 1fr;gap:9px 12px;font-size:12.5px;line-height:1.55;}
+  .kv .k{color:#8496b0;}
+  .kv .v{color:var(--ink);word-break:break-word;}
+  .dates{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .dcell{
+    border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:#fbfcfe;
+  }
+  .dcell .k{font-size:11px;color:#8496b0;}
+  .dcell .v{font-size:13.5px;font-weight:600;color:var(--ink);margin-top:3px;letter-spacing:.3px;}
+  .dcell.hot{border-color:#fbd2dd;background:#fff7f9;}
+  .dcell.hot .v{color:#be123c;}
+
+  .timeline{position:relative;padding-left:16px;}
+  .timeline:before{content:"";position:absolute;left:3px;top:5px;bottom:5px;width:2px;background:#e8eef8;}
+  .tl{position:relative;padding:0 0 13px 0;}
+  .tl:before{
+    content:"";position:absolute;left:-16px;top:3px;width:8px;height:8px;border-radius:50%;
+    background:#c9d7ee;border:2px solid #fff;
+  }
+  .tl:first-child:before{background:var(--brand);box-shadow:0 0 0 3px #e4ecfd;}
+  .tl .d{font-size:11.5px;color:var(--brand);font-weight:600;}
+  .tl .t{font-size:12.3px;color:var(--ink-2);line-height:1.55;margin-top:2px;}
+  .empty{font-size:12.5px;color:#9aa7ba;padding:8px 0;}
+
+  .legend{
+    position:absolute;left:16px;bottom:16px;z-index:400;background:rgba(255,255,255,.95);
+    border:1px solid var(--line);border-radius:11px;padding:10px 13px;box-shadow:0 6px 18px rgba(15,23,42,.08);
+    font-size:11.5px;color:var(--ink-2);line-height:1.9;
+  }
+  .legend .t{font-weight:600;color:var(--ink);font-size:11.5px;margin-bottom:3px;}
+  .legend .item{display:flex;align-items:center;gap:7px;}
+  .legend .s{width:9px;height:9px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+  .legend .note{color:#9aa7ba;font-size:10.5px;margin-top:5px;max-width:230px;line-height:1.5;}
+
+  .marker-wrap{background:transparent;}
+  .ro-badge{
+    display:inline-block;margin-left:8px;padding:2px 7px;border-radius:6px;font-size:10.5px;
+    color:#9fb0c6;border:1px solid rgba(255,255,255,.22);letter-spacing:.5px;vertical-align:middle;
+  }
+  details.all{margin-top:4px;}
+  details.all summary{cursor:pointer;font-size:12px;color:#7183a0;padding:7px 0;list-style:none;}
+  details.all summary::-webkit-details-marker{display:none;}
+  details.all summary b{color:var(--brand);font-weight:600;}
+  details.all .kv{margin-top:8px;grid-template-columns:118px 1fr;font-size:12px;gap:7px 12px;}
+  .pin{
+    width:68px;height:68px;border-radius:50%;border:4px solid #fff;
+    box-shadow:0 0 0 4px rgba(255,255,255,.55),0 10px 24px rgba(15,23,42,.45);
+    display:flex;align-items:center;justify-content:center;
+    font-size:25px;font-weight:800;color:#fff;transition:transform .18s;
+    letter-spacing:-.5px;text-shadow:0 2px 4px rgba(0,0,0,.3);
+  }
+  .pin:hover{transform:scale(1.06);}
+  .pin.sel{
+    transform:scale(1.08);
+    box-shadow:0 0 0 5px rgba(255,255,255,.75),0 0 0 12px rgba(29,78,216,.28),0 10px 24px rgba(15,23,42,.45);
+  }
+
+  /* ================= 手机端 ================= */
+  .fab{display:none;}
+  @media (max-width:820px){
+    body{overflow:hidden;}
+    .topbar{height:auto;min-height:58px;padding:9px 12px;gap:8px;flex-wrap:wrap;align-items:flex-start;}
+    .brand h1{font-size:15.5px;}
+    .brand small{font-size:10.5px;}
+    .topbar .hint{display:none;}
+    .stats{
+      order:3;width:100%;margin-top:2px;gap:6px;overflow-x:auto;scrollbar-width:none;
+      -webkit-overflow-scrolling:touch;
+    }
+    .stats::-webkit-scrollbar{display:none;}
+    .stat{padding:5px 9px;font-size:11px;border-radius:8px;flex-shrink:0;}
+    .stat b{font-size:13.5px;}
+
+
+    aside{
+      width:100%;height:82%;max-height:82%;position:absolute;left:0;right:0;bottom:0;top:auto;
+      border-left:0;border-radius:18px 18px 0 0;transform:translateY(101%);
+      transition:transform .3s cubic-bezier(.4,0,.2,1);
+      box-shadow:0 -12px 34px rgba(15,23,42,.22);padding-bottom:env(safe-area-inset-bottom);
+      overscroll-behavior:contain;z-index:560;
+    }
+    aside.open{transform:translateY(0);}
+    .p-head{padding:20px 14px 10px;}
+    .search{padding:11px 13px;border-radius:12px;}
+    .search input{font-size:15px;}
+    .chip{padding:8px 14px;font-size:13px;}
+    .list{padding:8px 8px 24px;}
+    .row{padding:13px 12px;}
+    .row-name{font-size:14px;-webkit-line-clamp:3;}
+    .row-meta{font-size:12px;}
+
+    .drawer{
+      width:100%;height:90%;max-height:90%;top:auto;bottom:0;left:0;
+      border-left:0;border-radius:18px 18px 0 0;transform:translateY(101%);
+      padding-bottom:env(safe-area-inset-bottom);overscroll-behavior:contain;
+    }
+    .drawer.open{transform:translateY(0);}
+    .d-head{padding:24px 14px 12px;}
+    .d-title{font-size:14.5px;}
+    .back{width:34px;height:34px;border-radius:10px;}
+    .d-body{padding:14px 14px 30px;}
+    .kv{grid-template-columns:78px 1fr;font-size:13px;}
+    .act{padding:13px 14px;font-size:14px;border-radius:12px;}
+    .act svg{width:17px;height:17px;}
+    .count .v b{font-size:38px;}
+    .dates{gap:9px;}
+    .dcell{padding:11px 12px;}
+    .dcell .v{font-size:14.5px;}
+
+    .leaflet-tooltip.proj-tip{width:min(290px,76vw);min-width:0;max-width:76vw;}
+
+    .fab{
+      display:flex;align-items:center;gap:6px;position:absolute;right:12px;bottom:calc(46px + env(safe-area-inset-bottom));
+      z-index:555;padding:12px 15px;border-radius:999px;border:0;cursor:pointer;
+      background:#0f172a;color:#fff;font-size:13.5px;font-weight:600;font-family:inherit;
+      box-shadow:0 10px 26px rgba(15,23,42,.34);transition:opacity .2s;
+    }
+    .fab svg{width:16px;height:16px;fill:#fff;opacity:.9;}
+    .fab .fab-n{background:rgba(255,255,255,.18);border-radius:999px;font-size:11.5px;padding:1px 7px;}
+    .legend{
+      display:flex;align-items:center;gap:9px;top:auto;bottom:12px;left:10px;right:auto;padding:6px 9px;
+      border-radius:9px;font-size:10.5px;line-height:1.2;opacity:.96;box-shadow:0 3px 10px rgba(15,23,42,.1);
+    }
+    .legend .note{display:none;}
+    .legend .t{display:none;}
+    .legend .item{gap:4px;white-space:nowrap;font-size:10.5px;}
+    .legend .s{width:8px;height:8px;border-width:1px;}
+
+    aside:before,.drawer:before{
+      content:"";position:absolute;top:8px;left:50%;transform:translateX(-50%);
+      width:40px;height:4px;border-radius:4px;background:#d8e2ef;z-index:3;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <div>
+      <h1>北京备案项目地图<span class="ro-badge">只读</span></h1>
+      <small id="srcLine">正在读取飞书在线表格…</small>
+    </div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <a class="hint" id="sheetLink" href="https://jcntthw4tzwh.feishu.cn/sheets/E1AcsZQ2EhT6Vgt9GiHcxmp6ncc" target="_blank" rel="noopener" style="text-decoration:none">飞书原表 ↗</a>
+  <div class="hint" id="hintBtn" style="cursor:pointer;margin-left:14px">数据来源：飞书表格 · 点此刷新</div>
+</header>
+
+<div class="stage">
+  <div id="map"></div>
+
+  <aside id="sidebar">
+    <div class="p-head">
+      <div class="search">
+        <svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
+        <input id="q" type="text" placeholder="搜索项目名称 / 地址 / 客户 / 业务员" />
+      </div>
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="list" id="list"></div>
+  </aside>
+
+  <div class="drawer" id="drawer">
+    <div class="d-head">
+      <button class="back" id="closeBtn" title="返回列表">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 6.17 4 14l8 8 1.42-1.42L7.83 13H20z"/></svg>
+      </button>
+      <div class="d-title" id="dTitle"></div>
+    </div>
+    <div class="d-body" id="dBody"></div>
+  </div>
+
+  <div class="legend">
+    <div class="t">失效紧急度</div>
+    <div class="item"><span class="s" style="background:#e11d48"></span>7 天内失效</div>
+    <div class="item"><span class="s" style="background:#f59e0b"></span>8–14 天</div>
+    <div class="item"><span class="s" style="background:#0f9d58"></span>15 天以上</div>
+    <div class="item"><span class="s" style="background:#94a3b8"></span>已失效</div>
+    <div class="note">圆内数字为距离失效的天数；圆点坐标为按项目地址生成的近似位置。</div>
+  </div>
+
+  <button class="fab" id="fab">
+    <svg viewBox="0 0 24 24"><path d="M3 5h18v2H3zm0 6h18v2H3zm0 6h18v2H3z"/></svg>
+    项目列表<span class="fab-n" id="fabN">0</span>
+  </button>
+</div>
+
+<script src="https://fastly.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+/* ================= 数据源 ================= */
+/* 渲染/地图/交互全部在浏览器里跑，不依赖后端。数据按下面顺序逐个尝试，
+   前一个失败就自动换下一个：联网时拿云端最新，断网时还有内置快照。
+
+     1) ?data=https://...          手动指定的地址
+     2) ./data.json                同目录（本地 HTTP 服务 / Pages 托管）
+     3) GitHub Raw 的 data.json    无 CDN 缓存，Actions push 后立刻就是最新
+     4) jsDelivr 的 data.json      国内访问更稳，代价是可能有缓存延迟
+     5) ?api=https://xxx           Cloudflare Worker 只读接口（飞书实时）
+     6) ./projects.json            本机调度器 / 地图服务写出的同目录快照
+     7) http://127.0.0.1:8787/     双击 html 打开时的本机地图服务
+     8) 内置快照 window.EMBEDDED   构建时写进 html 的最近一份数据
+     9) localStorage 缓存          上一次成功读到的数据 */
+const PARAMS = new URLSearchParams(location.search);
+const DATA_URL = PARAMS.get('data') || './data.json';
+/* 云端只读接口（Cloudflare Worker 等）：?api=https://xxx.workers.dev&key=xxx
+   页面上不含任何飞书密钥，密钥只在 Worker 里。 */
+const REMOTE_API = String(PARAMS.get('api') || window.REMOTE_API || '').replace(/\/+$/, '');
+const REMOTE_KEY = PARAMS.get('key') || '';
+/* 云端仓库地址，由 app/build_map_html.py 构建时从 config\config.json 的 publish 段注入。
+   为空就不试云端，只走本地/内置数据。 */
+const CLOUD = window.CLOUD || null;
+const FALLBACK_URL = 'http://127.0.0.1:8787/projects.json';
+const CACHE_KEY = 'beian_map_cache_v2';
+const FETCH_TIMEOUT = 6000;   // 单个数据源最多等 6 秒，避免 Raw 卡住不换源
+const CLOUD_TIMEOUT = 5000;   // 云端竞速的整体等待上限，超时就用本地/快照
+/* ?repo=owner/repo 可在不重新构建的情况下临时指定云端仓库 */
+const REPO_PARAM = String(PARAMS.get('repo') || '').trim();
+
+function cloudUrls(){
+  let owner = CLOUD && CLOUD.owner, repo = CLOUD && CLOUD.repo;
+  const br = (CLOUD && CLOUD.branch) || 'main';
+  if(REPO_PARAM.indexOf('/') > 0){
+    const s = REPO_PARAM.split('/');
+    owner = s[0]; repo = s[1];
+  }
+  if(!owner || !repo) return [];
+  const full = owner + '/' + repo;
+  return [
+    'https://raw.githubusercontent.com/' + full + '/' + br + '/data.json',
+    'https://fastly.jsdelivr.net/gh/' + full + '@' + br + '/data.json',
+    'https://cdn.jsdelivr.net/gh/' + full + '@' + br + '/data.json'
+  ];
+}
+
+let PROJECTS = [];
+let DATA_META = { updated: '', source: '', count: 0, origin: '' };
+
+/*__CLOUD_START__*/
+/* 云端地址：来自 config\config.json 的 publish 段（或 GITHUB_REPOSITORY 环境变量）。页面优先读 GitHub 上的 data.json，拿不到再用内置快照。 */
+window.CLOUD = null;
+/*__CLOUD_END__*/
+
+/*__EMBEDDED_START__*/
+/* 内置快照：由 app\build_map_html.py 把最近一次的数据直接写进本文件，没联网 / 打不开云端时也能看到内容。运行 build 脚本即可刷新。 */
+window.EMBEDDED = {"updated":"2026-11-21 00:06:10","source":"本地 Excel（备案项目2026-11-21.xlsx）","sheet":"备案项目","columns":158,"count":18,"rows":[["项目名称","项目地址","业务员","部门","面积","项目编号","预计订货时间","审批类型","项目情况描述","客户信息","产品类型","项目类型","是否报价","项目来源","项目类型","智能疏散跟进情况","项目进度","是否移动集采","建设类型","备案时间","项目工期","RCC编号","甲方单位名称","总包单位名称","机电单位名称","签单等级分类","预计合同金额","折扣信息","公司性质","公司资质","挂靠","职位","公司地址","项目分类","项目进度","竞争对手","项目签到次数","未跟进天数","申请报价次数","跨区情况","合作情况","合同情况","锁定情况","中标情况","丢失情况","最后一次签到记录","备案顺序","合同编号","是否海外项目","是否改造项目","创建时间","非备案人报价项目分类时间","丢失时间","最后一次签到时间","失效时间","备案项目分类时间","重点项目分类时间","成交时间","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录","签到时间","签到记录"],["第三批央企在京老旧小区综合整治项目（标包三百三十八）（南郎家园小区 2‑11 号楼、13‑15 号楼）（一标段）工程总承包（EPC）","北京市朝阳区建国路靠近南郎家园","王镜博","销售十三部","","","","直销项目","","左征（北京华信达消防工程有限公司）","报警","民商用/房地产/住宅","未报","跑工地 跑工地","新建项目","疏散情况需要跟进，暂不确定","封顶","","维修改造","2026/11/20","","","","","","","","","消防工程公司","二级资质","否","项目经理","北京市房山区良乡凯旋大街建设路18号——E810","备案项目","封顶","",1,"2026-11-20 15:14:01",0,"","","","","否","","发布招标公告，现阶段只有招标代理公司中标信息，后续信息持续跟进","第1备案人","","否","是 其他","2026/11/20","2026/11/20","","2026/11/20","2026/12/11","2026/11/20","","","2026/11/20","发布招标公告，现阶段只有招标代理公司中标信息，后续信息持续跟进","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["北京市朝阳区东坝车辆基地综合利用项目五期","北京市朝阳区东坝乡","王镜博","销售十三部","","","","直销项目","","李英胜（北京金海龙机电工程有限责任公司）","报警 智能疏散","民商用/房地产/住宅","已报","客户介绍 客户介绍","新建项目","二期三期疏散使用中科知创，五期做客户工作，推进青鸟","挖槽","","新建","2026/11/20","","","","","","","报警:3845;","报警:10.00;","消防工程公司","一级资质","否","项目经理","石景山区石景山路23号22号楼七层718室","备案项目","挖槽","",1,"2026-11-20 14:04:11",0,"","","","","否","","东坝五期项目金海龙客户中标，推进疏散使用青鸟","第5备案人","","否","否","2026/11/20","2026/11/20","","2026/11/20","2026/12/11","2026/11/20","","","2026/11/20","东坝五期项目金海龙客户中标，推进疏散使用青鸟","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["成都地区公寓住房统建项目","四川省成都市武侯区","王镜博","销售十三部","","","","直销项目","项目处于客户投标阶段","刘鹏辉（北京京禹达建筑装饰集团有限公司）","报警 智能疏散","民商用/房地产/住宅","未报","客户介绍 客户介绍","新建项目","有智能疏散，后续持续跟进","投标","","新建","2026/11/20","","","","","","","","","装饰公司","一级资质","否","老板","北京市大兴区欣雅街15号院5号楼16层1601","备案项目","投标","",1,"2026-11-20 12:13:50",0,"","","","","否","","客户处于项目投标阶段","第1备案人","","否","否","2026/11/20","2026/11/20","","2026/11/20","2026/12/11","2026/11/20","","","2026/11/20","客户处于项目投标阶段","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["报价专用2","北京市海淀区燕园街道成府路207号北大青鸟职业教育","王镜博","销售十三部","","","","直销项目","","翟海龙（天津市兴创建筑工程有限公司）","报警","民商用/商业服务建筑","已报","扫街 扫街","新建项目","无","封顶","","维修改造","2026/11/16","","","","","","","消防电源监控:252;漏电:488;","消防电源监控:1.00;漏电:1.00;","其他","无","否","老板","天津海河教育园区新慧路1号管理中心二区301-22CY150室","备案项目","封顶","",1,"2026-11-16 11:03:59",0,"","","","","否","","报价专用","第6备案人","","否","否","2026/11/16","2026/11/16","","2026/11/16","2026/12/07","2026/11/16","","","2026/11/16","报价专用","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["北京电源天空之境装修工程项目","北京市海淀区燕园街道成府路207号北大青鸟职业教育","王镜博","销售十三部","","","","直销项目","","翟海龙（天津市兴创建筑工程有限公司）","报警 智能疏散 防火门","民商用/商业服务建筑","未报","客户介绍 客户介绍","新建项目","37套方向标志灯、20套疏散出口、57个应急照明灯","封顶","","维修改造","2026/11/16","","","","","","","","","其他","无","否","老板","天津海河教育园区新慧路1号管理中心二区301-22CY150室","备案项目","封顶","",1,"2026-11-16 09:12:46",0,"","","","","否","","配合客户报价，包含报警、疏散 、防火门系统","第1备案人","","否","是 其他","2026/11/16","2026/11/16","","2026/11/16","2026/12/07","2026/11/16","","","2026/11/16","配合客户报价，包含报警、疏散 、防火门系统","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["华文国际大厦三水一电项目","北京市朝阳区建国路15号院","王镜博","销售十三部","","","","直销项目","华文国际大厦三水一点项目改造项目，无智能疏散情况跟进","左征（北京华信达消防工程有限公司）","智慧消防","民商用/商业服务建筑","未报","客户介绍 客户介绍","新建项目","无","封顶","","维修改造","2026/11/04","","","","","","","","","消防工程公司","二级资质","否","项目经理","北京市房山区良乡凯旋大街建设路18号——E810","备案项目","封顶","",1,"2026-11-04 13:26:39",0,"","","","","否","","华文国际大厦三水一点项目改造，无智能疏散","第17备案人","","否","是 其他","2026/11/04","2026/11/04","","2026/11/04","2026/11/25","2026/11/04","","","2026/11/04","华文国际大厦三水一点项目改造，无智能疏散","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["邮储银行丰台数据中心应急照明疏散指示系统更新项目","卢沟桥","王镜博","销售十三部","","","","直销项目","","姜彬（北京和安消防工程有限公司）","智能疏散","民商用/商业服务建筑","已报","客户介绍 客户介绍","新建项目","有智能疏散","挖槽","","维修改造","2026/11/04","","","","","","","智能疏散:19776.28;","智能疏散:0.45;","消防工程公司","二级资质","否","老板","北京市丰台区","备案项目","挖槽","",2,"2026-11-19 09:23:18",0,"","","","","否","","丰台数据中心项目周期较长，国企流程繁琐，后续持续更近","第1备案人","","否","是 其他","2026/11/04","2026/11/04","","2026/11/19","2026/12/10","2026/11/04","","","2026/11/04","与客户进行初步沟通，项目分为几个阶段，第一阶段包含，报警，疏散系统改造，客户倾向使用青鸟品牌，与技术杨总沟通方案问题","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["得熠花椒佛跳墙楼上改造项目","北京市朝阳区民族园路1号42幢","王镜博","销售十三部","","","","直销项目","项目金额不超过3万，配合客户报价","左征（北京华信达消防工程有限公司）","报警","民商用/商业服务建筑","未报","扫街 扫街","新建项目","无智能疏散跟进","封顶","","维修改造","2026/11/02","","","","","","","","","消防工程公司","二级资质","否","项目经理","北京市房山区良乡凯旋大街建设路18号——E810","备案项目","封顶","",1,"2026-11-02 17:07:36",0,"","","","","否","","项目金额不超过3万，配合客户报价，无智能疏散","第1备案人","","否","是 其他","2026/11/02","2026/11/02","","2026/11/02","2026/11/23","2026/11/02","","","2026/11/02","项目金额不超过3万，配合客户报价，无智能疏散","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["星光轻社区改造","北京市大兴区西红门镇团河路金荣园","王镜博","销售十三部","","","","直销项目","","","报警 智能疏散","民商用/房地产/住宅","已报","扫街 扫街","新建项目","在跟","外装修","","维修改造","2026/10/12","","","","","","","报警:1248;智慧消防:1338.4;","报警:0.60;智慧消防:0.70;","","","否","","","备案项目","外装修","",3,"2026-11-20 10:08:24",0,"","","","","否","","带镜博现场找消防单位","第1备案人","","否","是 利达","2026/10/12","2026/10/12","","2026/11/20","2026/12/11","2026/10/12","","","2026/11/20","带镜博现场找消防单位","2026/10/31","刚开始起围挡，要改造","2026/10/12","现场备案跟进，消防未进场","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["隆瑞三优充电站建设—通州商务园","北京市通州区永顺镇源盛东街北京同丰堂医药经营有限公司","王镜博","销售十三部","","","","直销项目","项目大前期","胡猛（北京兴业诚达建设有限公司）","报警 智能疏散 惟泰","民商用/商业服务建筑","未报","跑工地 跑项目","新建项目","含疏散","挖槽","","新建","2026/09/18","","","","","","","","","消防公司","二级资质","否","项目经理","北京市怀柔区杨宋镇风翔东大街9号201室","备案项目","挖槽","",3,"2026-11-17 15:44:08",0,"","","","","否","","项目前期，还未开始挖槽，无任何单位进场","第1备案人","","否","否","2026/09/18","2026/09/18","","2026/11/17","2026/12/08","2026/09/18","","","2026/11/17","项目前期，还未开始挖槽，无任何单位进场","2026/10/27","项目大前期，暂未开始挖槽","2026/09/18","项目大前期","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["北京城市副中心0403街区FZX-0403-6003、0403-6005、0403-6006、0403-6007、0403-6008、0403-6009、0403-6011地块","北京市通州区杨庄街道杨庄路世纪星城","王镜博","销售十三部","","","","直销项目","项目大前期还未开始挖槽","张磊（国泰瑞安股份有限公司）","报警 防火门 可燃气体 漏电 消防电源监控 余压监控 智能疏散","民商用/商业服务建筑","未报","跑工地 客户","新建项目","含疏散","挖槽","","新建","2026/09/18","","","","","","","","","消防工程公司","一级资质","否","经理","北京市丰台区郭公庄中街20号院3号楼8层809","备案项目","挖槽","",5,"2026-11-17 10:27:41",0,"","","","","否","","项目大前期，还未开始挖槽","第1备案人","","否","否","2026/09/18","2026/09/18","","2026/11/17","2026/12/08","2026/09/18","","","2026/11/17","项目大前期，还未开始挖槽","2026/11/17","现场跟进，跟进结果更新在日报中","2026/10/27","项目大前期，暂未开始挖槽","2026/09/18","现在打卡","2026/09/18","项目大前期还未开始挖槽","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["FZX-0601-0003、FZX-0601-0006、FZX-0601-0007、FZX-0601-0011","北京市通州区永顺镇滨榆西路","王镜博","销售十三部","","","","直销项目","","张铁英（北京金海龙机电工程有限责任公司）","报警 消防电源监控 余压监控 智能疏散","民商用/房地产/住宅","未报","跑工地 项目","新建项目","有","挖槽","","新建","2026/08/31","","","","","","","","","消防工程公司","一级资质","是","采购经理","石景山区石景山路23号22号楼七层718室","备案项目","挖槽","",4,"2026-11-17 15:56:12",0,"","","","","否","","项目前期，挖槽","第1备案人","","否","否","2026/08/31","2026/08/31","","2026/11/17","2026/12/08","2026/08/31","","","2026/11/17","项目前期，挖槽","2026/10/27","项目前期，挖槽中，持续跟进","2026/09/18","挖槽中","2026/08/31","项目储备，现场打卡","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["埃塞俄比亚比绍夫图国际机场","埃塞俄比亚","王镜博","销售十三部","","","","直销项目","跟总包投标","曹磊（北京市亚太安设备安装有限责任公司）","报警 防火门 可燃气体 漏电 消防电源监控 余压监控 智能疏散","工业/交通运输/机场项目","未报","工程公司 客户","新建项目","含疏散","挖槽","","新建","2026/08/03","","","","","","","","","消防公司","一级资质","是","采购经理","北京市东城区龙潭路甲3号翔龙大厦三层","备案项目","挖槽","",5,"2026-11-06 11:41:28",0,"","","","","否","","与客户建立初步联系","第1备案人","","是 跟着总包投标","否","2026/08/03","2026/08/03","","2026/11/06","2026/11/27","2026/08/03","","","2026/10/30","配合客户做各系统报价","2026/09/14","跟进中","2026/08/24","跟进中","2026/08/03","跟总包投标准备资料","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["乐家生活馆翻新项目","北京市大兴区西红门镇京良路中国石油安驰加油站","王镜博","销售十三部","","","","直销项目","","成工（北京鼎晟鑫建筑工程有限公司）","报警 防火门 漏电 消防电源监控 智能疏散","民商用/商业服务建筑","未报","扫街 扫街","新建项目","尚不明确","外装修","","维修改造","2026/06/16","","","","","","","","","消防公司","二级资质","否","其他","北京市房山区西潞街道长虹西路73号1幢1层C85","备案项目","外装修","",9,"2026-11-19 13:37:14",0,"","","","","否","","项目仍处于停工状态","第1备案人","","否","是 其他","2026/06/16","2026/06/16","","2026/11/19","2026/12/10","2026/06/16","","","2026/11/19","项目仍处于停工状态","2026/10/30","项目处于停工状态","2026/10/08","停工","2026/09/08","停工","2026/08/19","停工","2026/07/30","停工","2026/07/29","远程跟进","2026/07/09","未动工","2026/06/16","根据现场保安反馈，围挡竖起来已经有一年多，什么时候动工是否有中标单位不清楚。","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["北京市三环英和医院改造工程","北京市丰台区休闲街1层","王镜博","销售十三部","","","","直销项目","","卢总（北京市通盛达市政公用工程有限公司）","报警 智能疏散","","已报","工程公司 客户","新建项目","原220v的","投标","","维修改造","2025/12/10","","","","","","","报警:10743.75;防火门:2015.2;","报警:0.50;防火门:0.80;","消防公司","无","否","经理","北京市东城区藏经馆胡同17号1幢一层1886室","备案项目","投标","",18,"2026-11-09 15:42:18",0,"","","","","否","","客户运做","第1备案人","","否","否","2025/12/10","2025/12/10","","2026/11/09","2026/11/30","2025/12/10","","","2026/10/25","客户运做","2026/10/06","跟进","2026/09/08","跟进","2026/08/23","跟进","2026/08/05","跟进","2026/07/21","客户运作","2026/07/03","客户运作","2026/06/17","客户运作中","2026/05/29","客户运作中","2026/05/13","客户未进场","2026/04/21","客户与甲方还在沟通中","2026/04/01","客户与甲方还在谈","2026/03/16","基本客户做，近期在跟甲方谈价格","2026/02/28","客户做","2026/02/08","客户做","2026/01/19","客户做","2025/12/30","客户运作","2025/12/10","疏散为220V设备，加装报警系统","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["北蜂窝路5号院气灭区改造项目","北京市西城区","王镜博","销售十三部","","","","直销项目","甲方询价之前是法安通设备","张书杰（北京友安盛防火技术有限公司）","报警","","已报","工程公司 客户","新建项目","只改气灭区","内装修","","维修改造","2025/04/07","","","","","","","报警:72960.6;","报警:0.60;","消防工程公司","一级资质","否","采购经理","北京市门头沟区石龙经济开发区永安路20号3号楼A-3990室","备案项目","内装修","",29,"2026-11-19 13:49:23",0,"","","","","否","","第二次电话跟进，现场无进展，未开工","第4备案人","","否","否","2025/04/07","2025/04/07","","2026/11/19","2026/12/10","2025/04/07","","","2026/11/19","第二次电话跟进，现场无进展，未开工","2026/10/30","配合客户做各系统报价","2026/09/11","跟进中","2026/08/21","跟进中","2026/08/02","跟进中","2026/07/13","跟进项目","2026/06/25","跟进中","2026/06/03","跟进中","2026/05/13","跟进中","2026/04/18","跟进中","2026/03/25","跟进中","2026/03/04","跟进中","2026/02/11","跟进中","2026/01/23","跟进中","2026/01/02","跟进中","2025/12/12","改造项目","2025/11/24","跟进中","2025/11/03","跟进中","2025/10/13","跟进中","2025/09/22","跟进中","2025/09/02","跟进项目，今年改不上","2025/08/13","跟进项目","2025/07/24","跟进中","2025/07/03","明年采购","2025/06/13","跟进中","2025/05/23","气灭区整改方案已经报给物业，明年换设备","2025/05/18","报整改计划","2025/04/28","整改报给甲方方案","2025/04/07","改造甲方想把法安通换了","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["北京市朝阳区东坝车辆基地综合利用项目三期","北京市朝阳区东坝路与西坝街交叉口东北380米","王镜博","销售十三部","","","","直销项目","客户中标3，4，5，6，7，8，今年施工一期二期和三期。","张铁英（北京金海龙机电工程有限责任公司）","报警 漏电 防火门 消防电源监控","民商用/房地产/住宅","已报","工程公司 客户","新建项目","疏散中科","挖槽","","新建","2025/03/18","","","","","","","报警:3255;","报警:10.00;","消防工程公司","一级资质","是","采购经理","石景山区石景山路23号22号楼七层718室","备案项目","挖槽","",31,"2026-11-13 10:45:31",0,"","","","","否","","项目前期，挖槽状态","第3备案人","","否","否","2025/03/18","2025/03/18","","2026/11/13","2026/12/04","2025/03/18","","","2026/11/13","项目前期，挖槽状态","2026/10/30","客户中标，预计明年开始施工","2026/09/21","跟进中","2026/09/03","土建","2026/08/13","土建施工","2026/07/23","跟进中","2026/07/02","跟进中","2026/05/28","跟进中","2026/05/08","跟进中","2026/04/14","正在土建","2026/03/31","跟进中","2026/03/12","正在土建","2026/02/23","跟进中","2026/02/03","跟进中","2026/01/13","跟进中","2025/12/23","明年采购","2025/12/02","跟进中","2025/11/11","明年项目","2025/10/21","三期正在土建，明年施工","2025/10/07","跟进中","2025/09/17","跟进中","2025/08/28","跟进中","2025/08/07","跟进中","2025/07/17","跟进中","2025/06/27","已经投完标","2025/06/06","三期刚投完标","2025/05/16","跟进中","2025/04/28","客户已经投标明年的项目","2025/04/07","客户配合投标封样，三期还未起主体","2025/03/18","一期已经用青鸟后期八个标段都是用青鸟品牌","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","","",""],["丰台区城乡一体化周庄子村旧村改造项目二期ZZZ-06等地块(配建“共有产权住房”)项目ZZZ-L01(东)、ZZZ-L04(东)绿隔产业用地(含经济型酒店)","北京市丰台区丰台区","王镜博","销售十三部","","","","直销项目","","金爱华（北京中淦新科建设工程有限公司）","报警 智能疏散 防火门 漏电 消防电源监控 余压监控","民商用/房地产/住宅","已报","扫街 扫街","新建项目","跟进中","挖槽","","新建","2023/08/25","","","","","","","报警:3695;智能疏散:1480;","报警:10.00;智能疏散:10.00;","总包","一级资质","否","项目经理","北京市丰台区丰桥路六号院甲11号1层101内104","备案项目","挖槽","",79,"2026-11-18 17:03:09",0,"","","","","否","","客户中标全系统，给客户送展板","第1备案人","","否","否","2023/08/25","2023/08/25","","2026/11/18","2026/12/09","2023/08/25","","","2026/11/10","消防招标中，王总说等结果出来帮忙引荐","2026/10/21","消防招标中，预计年底进场","2026/09/23","写字楼三四层了，机电年底进场","2026/09/14","现场跟进，主机搭建中，预计明年要配备，中秋前再来见一趟王工","2026/08/24","现场跟进，主体搭建中，甲方王经理在开会，机电未进场","2026/08/11","现场跟进，项目刚正负零，竞争对手利达","2026/07/23","现场跟进，主体搭建中","2026/07/22","明天现场跟进","2026/07/02","现场跟进，联系甲方和总包，主体搭建中","2026/06/10","项目地下施工中，进度比较慢","2026/06/10","一会儿现场跟进","2026/05/20","跟进甲方王经理，28年竣工，项目会刻意拖进度，27下半年消防才会进场，甲方答应帮忙推品牌。","2026/05/19","总包进场，约了王总明天","2026/04/23","联系甲方，现场开会不方便进，项目搭建钢架中","2026/04/10","现场打卡，跟进甲方及总包","2026/03/19","见甲方，消防大概率北京市通盛达市政公用工程有限公司中标，预计明年采购设备。报警疏散都是分包采。","2026/03/19","总包进场，一会现场跟进","2026/02/26","春节暂未开工","2026/02/05","跟进工程部王总，设备由施工方采购，未定品牌","2026/01/15","中淦新科进场，无品牌指定，消防施工采购设备","2025/12/26","现场跟进，中淦新科进场，现场还没联系人","2025/12/26","一会现场跟进","2025/12/05","中建一局办公区撤了，但是还在谈，还没定最后谁做","2025/11/17","现场跟进，中建一局撤场，未确定新总包是哪家","2025/11/14","甲方换总包，新总包还未进场","2025/10/24","中建一局退场","2025/10/10","总包暂未进场","2025/09/29","跟进中，暂无进展","2025/09/11","现场跟进，原总包还未退场","2025/08/25","总包中建一局三准备退场了，可能换懋源地产 中淦新科做","2025/08/04","总包 中建一局三","2025/07/31","现场跟进，一部分主体已建完，有其他楼在建","2025/07/14","现场跟进","2025/06/24","现场跟进项目，几个楼已封顶，几个楼在新建中。","2025/06/03","拜访金爱华","2025/05/10","现场跟进主体基本完事","2025/04/21","项目有一定变动，目前有利达在竞争。","2025/04/01","现场跟进","2025/03/12","现场跟进，主体建设中。","2025/02/20","现场跟进","2025/02/01","春节期间不去现场符合政策","2025/01/13","现场跟进项目","2024/12/23","跟进现场，拜访于总，消防甲指","2024/12/03","沟通技术情况，消防甲指，智能疏散可能给水电分公司或者消防，待定。","2024/12/03","现场跟进该项目，配合客户进行技术交底，继续确认消防施工单位。","2024/11/12","现场跟进拜访于总，目前消防在洽谈中，很快就走招标流程了。","2024/11/12","一会儿现场打卡","2024/10/22","于总出差，金总没在，消防甲指，中建这边水电公司都没进来，中淦那边应该有意向了，甲方自己的公司。","2024/10/01","下次去现场。重要假期期间未去现场，符合划分基础业绩政策。","2024/09/12","机电为刘瑞涛老客户。马上进出"]],"projects":[{"name":"第三批央企在京老旧小区综合整治项目（标包三百三十八）（南郎家园小区 2‑11 号楼、13‑15 号楼）（一标段）工程总承包（EPC）","addr":"北京市朝阳区建国路靠近南郎家园","owner":"王镜博","dept":"销售十三部","area":"","customer":"左征（北京华信达消防工程有限公司）","product":"报警","classify":"备案项目","ptype":"民商用/房地产/住宅","build":"维修改造","stage":"封顶","amount":"","discount":"","desc":"","evac":"疏散情况需要跟进，暂不确定","customerType":"消防工程公司","customerQual":"二级资质","contact":"项目经理","customerAddr":"北京市房山区良乡凯旋大街建设路18号——E810","filing":"2026-11-20","expire":"2026-12-11","created":"2026-11-20","lastSign":"2026-11-20","signCount":"1","quoteTimes":"0","quoted":"未报","source":"跑工地 跑工地","lastRecord":"发布招标公告，现阶段只有招标代理公司中标信息，后续信息持续跟进","duration":"","vertical":"","signs":[{"date":"2026-11-20","note":"发布招标公告，现阶段只有招标代理公司中标信息，后续信息持续跟进"}],"fields":[["项目名称","第三批央企在京老旧小区综合整治项目（标包三百三十八）（南郎家园小区 2‑11 号楼、13‑15 号楼）（一标段）工程总承包（EPC）"],["项目地址","北京市朝阳区建国路靠近南郎家园"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["客户信息","左征（北京华信达消防工程有限公司）"],["产品类型","报警"],["项目类型","民商用/房地产/住宅"],["是否报价","未报"],["项目来源","跑工地 跑工地"],["项目类型（2）","新建项目"],["智能疏散跟进情况","疏散情况需要跟进，暂不确定"],["项目进度","封顶"],["建设类型","维修改造"],["备案时间","2026/11/20"],["公司性质","消防工程公司"],["公司资质","二级资质"],["挂靠","否"],["职位","项目经理"],["公司地址","北京市房山区良乡凯旋大街建设路18号——E810"],["项目分类","备案项目"],["项目进度（2）","封顶"],["项目签到次数","1"],["未跟进天数","2026-11-20 15:14:01"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","发布招标公告，现阶段只有招标代理公司中标信息，后续信息持续跟进"],["备案顺序","第1备案人"],["是否海外项目","否"],["是否改造项目","是 其他"],["创建时间","2026/11/20"],["非备案人报价项目分类时间","2026/11/20"],["最后一次签到时间","2026/11/20"],["失效时间","2026/12/11"],["备案项目分类时间","2026/11/20"]],"lat":39.9055,"lng":116.478,"geo":"exact"},{"name":"北京市朝阳区东坝车辆基地综合利用项目五期","addr":"北京市朝阳区东坝乡","owner":"王镜博","dept":"销售十三部","area":"","customer":"李英胜（北京金海龙机电工程有限责任公司）","product":"报警 智能疏散","classify":"备案项目","ptype":"民商用/房地产/住宅","build":"新建","stage":"挖槽","amount":"报警:3845;","discount":"报警:10.00;","desc":"","evac":"二期三期疏散使用中科知创，五期做客户工作，推进青鸟","customerType":"消防工程公司","customerQual":"一级资质","contact":"项目经理","customerAddr":"石景山区石景山路23号22号楼七层718室","filing":"2026-11-20","expire":"2026-12-11","created":"2026-11-20","lastSign":"2026-11-20","signCount":"1","quoteTimes":"0","quoted":"已报","source":"客户介绍 客户介绍","lastRecord":"东坝五期项目金海龙客户中标，推进疏散使用青鸟","duration":"","vertical":"","signs":[{"date":"2026-11-20","note":"东坝五期项目金海龙客户中标，推进疏散使用青鸟"}],"fields":[["项目名称","北京市朝阳区东坝车辆基地综合利用项目五期"],["项目地址","北京市朝阳区东坝乡"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["客户信息","李英胜（北京金海龙机电工程有限责任公司）"],["产品类型","报警 智能疏散"],["项目类型","民商用/房地产/住宅"],["是否报价","已报"],["项目来源","客户介绍 客户介绍"],["项目类型（2）","新建项目"],["智能疏散跟进情况","二期三期疏散使用中科知创，五期做客户工作，推进青鸟"],["项目进度","挖槽"],["建设类型","新建"],["备案时间","2026/11/20"],["预计合同金额","报警:3845;"],["折扣信息","报警:10.00;"],["公司性质","消防工程公司"],["公司资质","一级资质"],["挂靠","否"],["职位","项目经理"],["公司地址","石景山区石景山路23号22号楼七层718室"],["项目分类","备案项目"],["项目进度（2）","挖槽"],["项目签到次数","1"],["未跟进天数","2026-11-20 14:04:11"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","东坝五期项目金海龙客户中标，推进疏散使用青鸟"],["备案顺序","第5备案人"],["是否海外项目","否"],["是否改造项目","否"],["创建时间","2026/11/20"],["非备案人报价项目分类时间","2026/11/20"],["最后一次签到时间","2026/11/20"],["失效时间","2026/12/11"],["备案项目分类时间","2026/11/20"]],"lat":39.966,"lng":116.558,"geo":"exact"},{"name":"成都地区公寓住房统建项目","addr":"四川省成都市武侯区","owner":"王镜博","dept":"销售十三部","area":"","customer":"刘鹏辉（北京京禹达建筑装饰集团有限公司）","product":"报警 智能疏散","classify":"备案项目","ptype":"民商用/房地产/住宅","build":"新建","stage":"投标","amount":"","discount":"","desc":"项目处于客户投标阶段","evac":"有智能疏散，后续持续跟进","customerType":"装饰公司","customerQual":"一级资质","contact":"老板","customerAddr":"北京市大兴区欣雅街15号院5号楼16层1601","filing":"2026-11-20","expire":"2026-12-11","created":"2026-11-20","lastSign":"2026-11-20","signCount":"1","quoteTimes":"0","quoted":"未报","source":"客户介绍 客户介绍","lastRecord":"客户处于项目投标阶段","duration":"","vertical":"","signs":[{"date":"2026-11-20","note":"客户处于项目投标阶段"}],"fields":[["项目名称","成都地区公寓住房统建项目"],["项目地址","四川省成都市武侯区"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["项目情况描述","项目处于客户投标阶段"],["客户信息","刘鹏辉（北京京禹达建筑装饰集团有限公司）"],["产品类型","报警 智能疏散"],["项目类型","民商用/房地产/住宅"],["是否报价","未报"],["项目来源","客户介绍 客户介绍"],["项目类型（2）","新建项目"],["智能疏散跟进情况","有智能疏散，后续持续跟进"],["项目进度","投标"],["建设类型","新建"],["备案时间","2026/11/20"],["公司性质","装饰公司"],["公司资质","一级资质"],["挂靠","否"],["职位","老板"],["公司地址","北京市大兴区欣雅街15号院5号楼16层1601"],["项目分类","备案项目"],["项目进度（2）","投标"],["项目签到次数","1"],["未跟进天数","2026-11-20 12:13:50"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","客户处于项目投标阶段"],["备案顺序","第1备案人"],["是否海外项目","否"],["是否改造项目","否"],["创建时间","2026/11/20"],["非备案人报价项目分类时间","2026/11/20"],["最后一次签到时间","2026/11/20"],["失效时间","2026/12/11"],["备案项目分类时间","2026/11/20"]],"lat":30.643,"lng":104.043,"geo":"exact"},{"name":"报价专用2","addr":"北京市海淀区燕园街道成府路207号北大青鸟职业教育","owner":"王镜博","dept":"销售十三部","area":"","customer":"翟海龙（天津市兴创建筑工程有限公司）","product":"报警","classify":"备案项目","ptype":"民商用/商业服务建筑","build":"维修改造","stage":"封顶","amount":"消防电源监控:252;漏电:488;","discount":"消防电源监控:1.00;漏电:1.00;","desc":"","evac":"无","customerType":"其他","customerQual":"无","contact":"老板","customerAddr":"天津海河教育园区新慧路1号管理中心二区301-22CY150室","filing":"2026-11-16","expire":"2026-12-07","created":"2026-11-16","lastSign":"2026-11-16","signCount":"1","quoteTimes":"0","quoted":"已报","source":"扫街 扫街","lastRecord":"报价专用","duration":"","vertical":"","signs":[{"date":"2026-11-16","note":"报价专用"}],"fields":[["项目名称","报价专用2"],["项目地址","北京市海淀区燕园街道成府路207号北大青鸟职业教育"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["客户信息","翟海龙（天津市兴创建筑工程有限公司）"],["产品类型","报警"],["项目类型","民商用/商业服务建筑"],["是否报价","已报"],["项目来源","扫街 扫街"],["项目类型（2）","新建项目"],["智能疏散跟进情况","无"],["项目进度","封顶"],["建设类型","维修改造"],["备案时间","2026/11/16"],["预计合同金额","消防电源监控:252;漏电:488;"],["折扣信息","消防电源监控:1.00;漏电:1.00;"],["公司性质","其他"],["公司资质","无"],["挂靠","否"],["职位","老板"],["公司地址","天津海河教育园区新慧路1号管理中心二区301-22CY150室"],["项目分类","备案项目"],["项目进度（2）","封顶"],["项目签到次数","1"],["未跟进天数","2026-11-16 11:03:59"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","报价专用"],["备案顺序","第6备案人"],["是否海外项目","否"],["是否改造项目","否"],["创建时间","2026/11/16"],["非备案人报价项目分类时间","2026/11/16"],["最后一次签到时间","2026/11/16"],["失效时间","2026/12/07"],["备案项目分类时间","2026/11/16"]],"lat":39.991,"lng":116.315,"geo":"exact"},{"name":"北京电源天空之境装修工程项目","addr":"北京市海淀区燕园街道成府路207号北大青鸟职业教育","owner":"王镜博","dept":"销售十三部","area":"","customer":"翟海龙（天津市兴创建筑工程有限公司）","product":"报警 智能疏散 防火门","classify":"备案项目","ptype":"民商用/商业服务建筑","build":"维修改造","stage":"封顶","amount":"","discount":"","desc":"","evac":"37套方向标志灯、20套疏散出口、57个应急照明灯","customerType":"其他","customerQual":"无","contact":"老板","customerAddr":"天津海河教育园区新慧路1号管理中心二区301-22CY150室","filing":"2026-11-16","expire":"2026-12-07","created":"2026-11-16","lastSign":"2026-11-16","signCount":"1","quoteTimes":"0","quoted":"未报","source":"客户介绍 客户介绍","lastRecord":"配合客户报价，包含报警、疏散 、防火门系统","duration":"","vertical":"","signs":[{"date":"2026-11-16","note":"配合客户报价，包含报警、疏散 、防火门系统"}],"fields":[["项目名称","北京电源天空之境装修工程项目"],["项目地址","北京市海淀区燕园街道成府路207号北大青鸟职业教育"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["客户信息","翟海龙（天津市兴创建筑工程有限公司）"],["产品类型","报警 智能疏散 防火门"],["项目类型","民商用/商业服务建筑"],["是否报价","未报"],["项目来源","客户介绍 客户介绍"],["项目类型（2）","新建项目"],["智能疏散跟进情况","37套方向标志灯、20套疏散出口、57个应急照明灯"],["项目进度","封顶"],["建设类型","维修改造"],["备案时间","2026/11/16"],["公司性质","其他"],["公司资质","无"],["挂靠","否"],["职位","老板"],["公司地址","天津海河教育园区新慧路1号管理中心二区301-22CY150室"],["项目分类","备案项目"],["项目进度（2）","封顶"],["项目签到次数","1"],["未跟进天数","2026-11-16 09:12:46"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","配合客户报价，包含报警、疏散 、防火门系统"],["备案顺序","第1备案人"],["是否海外项目","否"],["是否改造项目","是 其他"],["创建时间","2026/11/16"],["非备案人报价项目分类时间","2026/11/16"],["最后一次签到时间","2026/11/16"],["失效时间","2026/12/07"],["备案项目分类时间","2026/11/16"]],"lat":39.9924,"lng":116.3172,"geo":"exact"},{"name":"华文国际大厦三水一电项目","addr":"北京市朝阳区建国路15号院","owner":"王镜博","dept":"销售十三部","area":"","customer":"左征（北京华信达消防工程有限公司）","product":"智慧消防","classify":"备案项目","ptype":"民商用/商业服务建筑","build":"维修改造","stage":"封顶","amount":"","discount":"","desc":"华文国际大厦三水一点项目改造项目，无智能疏散情况跟进","evac":"无","customerType":"消防工程公司","customerQual":"二级资质","contact":"项目经理","customerAddr":"北京市房山区良乡凯旋大街建设路18号——E810","filing":"2026-11-04","expire":"2026-11-25","created":"2026-11-04","lastSign":"2026-11-04","signCount":"1","quoteTimes":"0","quoted":"未报","source":"客户介绍 客户介绍","lastRecord":"华文国际大厦三水一点项目改造，无智能疏散","duration":"","vertical":"","signs":[{"date":"2026-11-04","note":"华文国际大厦三水一点项目改造，无智能疏散"}],"fields":[["项目名称","华文国际大厦三水一电项目"],["项目地址","北京市朝阳区建国路15号院"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["项目情况描述","华文国际大厦三水一点项目改造项目，无智能疏散情况跟进"],["客户信息","左征（北京华信达消防工程有限公司）"],["产品类型","智慧消防"],["项目类型","民商用/商业服务建筑"],["是否报价","未报"],["项目来源","客户介绍 客户介绍"],["项目类型（2）","新建项目"],["智能疏散跟进情况","无"],["项目进度","封顶"],["建设类型","维修改造"],["备案时间","2026/11/04"],["公司性质","消防工程公司"],["公司资质","二级资质"],["挂靠","否"],["职位","项目经理"],["公司地址","北京市房山区良乡凯旋大街建设路18号——E810"],["项目分类","备案项目"],["项目进度（2）","封顶"],["项目签到次数","1"],["未跟进天数","2026-11-04 13:26:39"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","华文国际大厦三水一点项目改造，无智能疏散"],["备案顺序","第17备案人"],["是否海外项目","否"],["是否改造项目","是 其他"],["创建时间","2026/11/04"],["非备案人报价项目分类时间","2026/11/04"],["最后一次签到时间","2026/11/04"],["失效时间","2026/11/25"],["备案项目分类时间","2026/11/04"]],"lat":39.907,"lng":116.487,"geo":"exact"},{"name":"邮储银行丰台数据中心应急照明疏散指示系统更新项目","addr":"卢沟桥","owner":"王镜博","dept":"销售十三部","area":"","customer":"姜彬（北京和安消防工程有限公司）","product":"智能疏散","classify":"备案项目","ptype":"民商用/商业服务建筑","build":"维修改造","stage":"挖槽","amount":"智能疏散:19776.28;","discount":"智能疏散:0.45;","desc":"","evac":"有智能疏散","customerType":"消防工程公司","customerQual":"二级资质","contact":"老板","customerAddr":"北京市丰台区","filing":"2026-11-04","expire":"2026-12-10","created":"2026-11-04","lastSign":"2026-11-19","signCount":"2","quoteTimes":"0","quoted":"已报","source":"客户介绍 客户介绍","lastRecord":"丰台数据中心项目周期较长，国企流程繁琐，后续持续更近","duration":"","vertical":"","signs":[{"date":"2026-11-04","note":"与客户进行初步沟通，项目分为几个阶段，第一阶段包含，报警，疏散系统改造，客户倾向使用青鸟品牌，与技术杨总沟通方案问题"}],"fields":[["项目名称","邮储银行丰台数据中心应急照明疏散指示系统更新项目"],["项目地址","卢沟桥"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["客户信息","姜彬（北京和安消防工程有限公司）"],["产品类型","智能疏散"],["项目类型","民商用/商业服务建筑"],["是否报价","已报"],["项目来源","客户介绍 客户介绍"],["项目类型（2）","新建项目"],["智能疏散跟进情况","有智能疏散"],["项目进度","挖槽"],["建设类型","维修改造"],["备案时间","2026/11/04"],["预计合同金额","智能疏散:19776.28;"],["折扣信息","智能疏散:0.45;"],["公司性质","消防工程公司"],["公司资质","二级资质"],["挂靠","否"],["职位","老板"],["公司地址","北京市丰台区"],["项目分类","备案项目"],["项目进度（2）","挖槽"],["项目签到次数","2"],["未跟进天数","2026-11-19 09:23:18"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","丰台数据中心项目周期较长，国企流程繁琐，后续持续更近"],["备案顺序","第1备案人"],["是否海外项目","否"],["是否改造项目","是 其他"],["创建时间","2026/11/04"],["非备案人报价项目分类时间","2026/11/04"],["最后一次签到时间","2026/11/19"],["失效时间","2026/12/10"],["备案项目分类时间","2026/11/04"]],"lat":39.847,"lng":116.214,"geo":"exact"},{"name":"得熠花椒佛跳墙楼上改造项目","addr":"北京市朝阳区民族园路1号42幢","owner":"王镜博","dept":"销售十三部","area":"","customer":"左征（北京华信达消防工程有限公司）","product":"报警","classify":"备案项目","ptype":"民商用/商业服务建筑","build":"维修改造","stage":"封顶","amount":"","discount":"","desc":"项目金额不超过3万，配合客户报价","evac":"无智能疏散跟进","customerType":"消防工程公司","customerQual":"二级资质","contact":"项目经理","customerAddr":"北京市房山区良乡凯旋大街建设路18号——E810","filing":"2026-11-02","expire":"2026-11-23","created":"2026-11-02","lastSign":"2026-11-02","signCount":"1","quoteTimes":"0","quoted":"未报","source":"扫街 扫街","lastRecord":"项目金额不超过3万，配合客户报价，无智能疏散","duration":"","vertical":"","signs":[{"date":"2026-11-02","note":"项目金额不超过3万，配合客户报价，无智能疏散"}],"fields":[["项目名称","得熠花椒佛跳墙楼上改造项目"],["项目地址","北京市朝阳区民族园路1号42幢"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["项目情况描述","项目金额不超过3万，配合客户报价"],["客户信息","左征（北京华信达消防工程有限公司）"],["产品类型","报警"],["项目类型","民商用/商业服务建筑"],["是否报价","未报"],["项目来源","扫街 扫街"],["项目类型（2）","新建项目"],["智能疏散跟进情况","无智能疏散跟进"],["项目进度","封顶"],["建设类型","维修改造"],["备案时间","2026/11/02"],["公司性质","消防工程公司"],["公司资质","二级资质"],["挂靠","否"],["职位","项目经理"],["公司地址","北京市房山区良乡凯旋大街建设路18号——E810"],["项目分类","备案项目"],["项目进度（2）","封顶"],["项目签到次数","1"],["未跟进天数","2026-11-02 17:07:36"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","项目金额不超过3万，配合客户报价，无智能疏散"],["备案顺序","第1备案人"],["是否海外项目","否"],["是否改造项目","是 其他"],["创建时间","2026/11/02"],["非备案人报价项目分类时间","2026/11/02"],["最后一次签到时间","2026/11/02"],["失效时间","2026/11/23"],["备案项目分类时间","2026/11/02"]],"lat":39.985,"lng":116.39,"geo":"exact"},{"name":"星光轻社区改造","addr":"北京市大兴区西红门镇团河路金荣园","owner":"王镜博","dept":"销售十三部","area":"","customer":"","product":"报警 智能疏散","classify":"备案项目","ptype":"民商用/房地产/住宅","build":"维修改造","stage":"外装修","amount":"报警:1248;智慧消防:1338.4;","discount":"报警:0.60;智慧消防:0.70;","desc":"","evac":"在跟","customerType":"","customerQual":"","contact":"","customerAddr":"","filing":"2026-10-12","expire":"2026-12-11","created":"2026-10-12","lastSign":"2026-11-20","signCount":"3","quoteTimes":"0","quoted":"已报","source":"扫街 扫街","lastRecord":"带镜博现场找消防单位","duration":"","vertical":"","signs":[{"date":"2026-11-20","note":"带镜博现场找消防单位"},{"date":"2026-10-31","note":"刚开始起围挡，要改造"},{"date":"2026-10-12","note":"现场备案跟进，消防未进场"}],"fields":[["项目名称","星光轻社区改造"],["项目地址","北京市大兴区西红门镇团河路金荣园"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["产品类型","报警 智能疏散"],["项目类型","民商用/房地产/住宅"],["是否报价","已报"],["项目来源","扫街 扫街"],["项目类型（2）","新建项目"],["智能疏散跟进情况","在跟"],["项目进度","外装修"],["建设类型","维修改造"],["备案时间","2026/10/12"],["预计合同金额","报警:1248;智慧消防:1338.4;"],["折扣信息","报警:0.60;智慧消防:0.70;"],["挂靠","否"],["项目分类","备案项目"],["项目进度（2）","外装修"],["项目签到次数","3"],["未跟进天数","2026-11-20 10:08:24"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","带镜博现场找消防单位"],["备案顺序","第1备案人"],["是否海外项目","否"],["是否改造项目","是 利达"],["创建时间","2026/10/12"],["非备案人报价项目分类时间","2026/10/12"],["最后一次签到时间","2026/11/20"],["失效时间","2026/12/11"],["备案项目分类时间","2026/10/12"]],"lat":39.793,"lng":116.328,"geo":"exact"},{"name":"隆瑞三优充电站建设—通州商务园","addr":"北京市通州区永顺镇源盛东街北京同丰堂医药经营有限公司","owner":"王镜博","dept":"销售十三部","area":"","customer":"胡猛（北京兴业诚达建设有限公司）","product":"报警 智能疏散 惟泰","classify":"备案项目","ptype":"民商用/商业服务建筑","build":"新建","stage":"挖槽","amount":"","discount":"","desc":"项目大前期","evac":"含疏散","customerType":"消防公司","customerQual":"二级资质","contact":"项目经理","customerAddr":"北京市怀柔区杨宋镇风翔东大街9号201室","filing":"2026-09-18","expire":"2026-12-08","created":"2026-09-18","lastSign":"2026-11-17","signCount":"3","quoteTimes":"0","quoted":"未报","source":"跑工地 跑项目","lastRecord":"项目前期，还未开始挖槽，无任何单位进场","duration":"","vertical":"","signs":[{"date":"2026-11-17","note":"项目前期，还未开始挖槽，无任何单位进场"},{"date":"2026-10-27","note":"项目大前期，暂未开始挖槽"},{"date":"2026-09-18","note":"项目大前期"}],"fields":[["项目名称","隆瑞三优充电站建设—通州商务园"],["项目地址","北京市通州区永顺镇源盛东街北京同丰堂医药经营有限公司"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["项目情况描述","项目大前期"],["客户信息","胡猛（北京兴业诚达建设有限公司）"],["产品类型","报警 智能疏散 惟泰"],["项目类型","民商用/商业服务建筑"],["是否报价","未报"],["项目来源","跑工地 跑项目"],["项目类型（2）","新建项目"],["智能疏散跟进情况","含疏散"],["项目进度","挖槽"],["建设类型","新建"],["备案时间","2026/09/18"],["公司性质","消防公司"],["公司资质","二级资质"],["挂靠","否"],["职位","项目经理"],["公司地址","北京市怀柔区杨宋镇风翔东大街9号201室"],["项目分类","备案项目"],["项目进度（2）","挖槽"],["项目签到次数","3"],["未跟进天数","2026-11-17 15:44:08"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","项目前期，还未开始挖槽，无任何单位进场"],["备案顺序","第1备案人"],["是否海外项目","否"],["是否改造项目","否"],["创建时间","2026/09/18"],["非备案人报价项目分类时间","2026/09/18"],["最后一次签到时间","2026/11/17"],["失效时间","2026/12/08"],["备案项目分类时间","2026/09/18"]],"lat":39.918,"lng":116.685,"geo":"exact"},{"name":"北京城市副中心0403街区FZX-0403-6003、0403-6005、0403-6006、0403-6007、0403-6008、0403-6009、0403-6011地块","addr":"北京市通州区杨庄街道杨庄路世纪星城","owner":"王镜博","dept":"销售十三部","area":"","customer":"张磊（国泰瑞安股份有限公司）","product":"报警 防火门 可燃气体 漏电 消防电源监控 余压监控 智能疏散","classify":"备案项目","ptype":"民商用/商业服务建筑","build":"新建","stage":"挖槽","amount":"","discount":"","desc":"项目大前期还未开始挖槽","evac":"含疏散","customerType":"消防工程公司","customerQual":"一级资质","contact":"经理","customerAddr":"北京市丰台区郭公庄中街20号院3号楼8层809","filing":"2026-09-18","expire":"2026-12-08","created":"2026-09-18","lastSign":"2026-11-17","signCount":"5","quoteTimes":"0","quoted":"未报","source":"跑工地 客户","lastRecord":"项目大前期，还未开始挖槽","duration":"","vertical":"","signs":[{"date":"2026-11-17","note":"项目大前期，还未开始挖槽"},{"date":"2026-11-17","note":"现场跟进，跟进结果更新在日报中"},{"date":"2026-10-27","note":"项目大前期，暂未开始挖槽"},{"date":"2026-09-18","note":"现在打卡"},{"date":"2026-09-18","note":"项目大前期还未开始挖槽"}],"fields":[["项目名称","北京城市副中心0403街区FZX-0403-6003、0403-6005、0403-6006、0403-6007、0403-6008、0403-6009、0403-6011地块"],["项目地址","北京市通州区杨庄街道杨庄路世纪星城"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["项目情况描述","项目大前期还未开始挖槽"],["客户信息","张磊（国泰瑞安股份有限公司）"],["产品类型","报警 防火门 可燃气体 漏电 消防电源监控 余压监控 智能疏散"],["项目类型","民商用/商业服务建筑"],["是否报价","未报"],["项目来源","跑工地 客户"],["项目类型（2）","新建项目"],["智能疏散跟进情况","含疏散"],["项目进度","挖槽"],["建设类型","新建"],["备案时间","2026/09/18"],["公司性质","消防工程公司"],["公司资质","一级资质"],["挂靠","否"],["职位","经理"],["公司地址","北京市丰台区郭公庄中街20号院3号楼8层809"],["项目分类","备案项目"],["项目进度（2）","挖槽"],["项目签到次数","5"],["未跟进天数","2026-11-17 10:27:41"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","项目大前期，还未开始挖槽"],["备案顺序","第1备案人"],["是否海外项目","否"],["是否改造项目","否"],["创建时间","2026/09/18"],["非备案人报价项目分类时间","2026/09/18"],["最后一次签到时间","2026/11/17"],["失效时间","2026/12/08"],["备案项目分类时间","2026/09/18"]],"lat":39.903,"lng":116.648,"geo":"exact"},{"name":"FZX-0601-0003、FZX-0601-0006、FZX-0601-0007、FZX-0601-0011","addr":"北京市通州区永顺镇滨榆西路","owner":"王镜博","dept":"销售十三部","area":"","customer":"张铁英（北京金海龙机电工程有限责任公司）","product":"报警 消防电源监控 余压监控 智能疏散","classify":"备案项目","ptype":"民商用/房地产/住宅","build":"新建","stage":"挖槽","amount":"","discount":"","desc":"","evac":"有","customerType":"消防工程公司","customerQual":"一级资质","contact":"采购经理","customerAddr":"石景山区石景山路23号22号楼七层718室","filing":"2026-08-31","expire":"2026-12-08","created":"2026-08-31","lastSign":"2026-11-17","signCount":"4","quoteTimes":"0","quoted":"未报","source":"跑工地 项目","lastRecord":"项目前期，挖槽","duration":"","vertical":"","signs":[{"date":"2026-11-17","note":"项目前期，挖槽"},{"date":"2026-10-27","note":"项目前期，挖槽中，持续跟进"},{"date":"2026-09-18","note":"挖槽中"},{"date":"2026-08-31","note":"项目储备，现场打卡"}],"fields":[["项目名称","FZX-0601-0003、FZX-0601-0006、FZX-0601-0007、FZX-0601-0011"],["项目地址","北京市通州区永顺镇滨榆西路"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["客户信息","张铁英（北京金海龙机电工程有限责任公司）"],["产品类型","报警 消防电源监控 余压监控 智能疏散"],["项目类型","民商用/房地产/住宅"],["是否报价","未报"],["项目来源","跑工地 项目"],["项目类型（2）","新建项目"],["智能疏散跟进情况","有"],["项目进度","挖槽"],["建设类型","新建"],["备案时间","2026/08/31"],["公司性质","消防工程公司"],["公司资质","一级资质"],["挂靠","是"],["职位","采购经理"],["公司地址","石景山区石景山路23号22号楼七层718室"],["项目分类","备案项目"],["项目进度（2）","挖槽"],["项目签到次数","4"],["未跟进天数","2026-11-17 15:56:12"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","项目前期，挖槽"],["备案顺序","第1备案人"],["是否海外项目","否"],["是否改造项目","否"],["创建时间","2026/08/31"],["非备案人报价项目分类时间","2026/08/31"],["最后一次签到时间","2026/11/17"],["失效时间","2026/12/08"],["备案项目分类时间","2026/08/31"]],"lat":39.938,"lng":116.682,"geo":"exact"},{"name":"埃塞俄比亚比绍夫图国际机场","addr":"埃塞俄比亚","owner":"王镜博","dept":"销售十三部","area":"","customer":"曹磊（北京市亚太安设备安装有限责任公司）","product":"报警 防火门 可燃气体 漏电 消防电源监控 余压监控 智能疏散","classify":"备案项目","ptype":"工业/交通运输/机场项目","build":"新建","stage":"挖槽","amount":"","discount":"","desc":"跟总包投标","evac":"含疏散","customerType":"消防公司","customerQual":"一级资质","contact":"采购经理","customerAddr":"北京市东城区龙潭路甲3号翔龙大厦三层","filing":"2026-08-03","expire":"2026-11-27","created":"2026-08-03","lastSign":"2026-11-06","signCount":"5","quoteTimes":"0","quoted":"未报","source":"工程公司 客户","lastRecord":"与客户建立初步联系","duration":"","vertical":"","signs":[{"date":"2026-10-30","note":"配合客户做各系统报价"},{"date":"2026-09-14","note":"跟进中"},{"date":"2026-08-24","note":"跟进中"},{"date":"2026-08-03","note":"跟总包投标准备资料"}],"fields":[["项目名称","埃塞俄比亚比绍夫图国际机场"],["项目地址","埃塞俄比亚"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["项目情况描述","跟总包投标"],["客户信息","曹磊（北京市亚太安设备安装有限责任公司）"],["产品类型","报警 防火门 可燃气体 漏电 消防电源监控 余压监控 智能疏散"],["项目类型","工业/交通运输/机场项目"],["是否报价","未报"],["项目来源","工程公司 客户"],["项目类型（2）","新建项目"],["智能疏散跟进情况","含疏散"],["项目进度","挖槽"],["建设类型","新建"],["备案时间","2026/08/03"],["公司性质","消防公司"],["公司资质","一级资质"],["挂靠","是"],["职位","采购经理"],["公司地址","北京市东城区龙潭路甲3号翔龙大厦三层"],["项目分类","备案项目"],["项目进度（2）","挖槽"],["项目签到次数","5"],["未跟进天数","2026-11-06 11:41:28"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","与客户建立初步联系"],["备案顺序","第1备案人"],["是否海外项目","是 跟着总包投标"],["是否改造项目","否"],["创建时间","2026/08/03"],["非备案人报价项目分类时间","2026/08/03"],["最后一次签到时间","2026/11/06"],["失效时间","2026/11/27"],["备案项目分类时间","2026/08/03"]],"lat":8.93,"lng":39.78,"geo":"exact"},{"name":"乐家生活馆翻新项目","addr":"北京市大兴区西红门镇京良路中国石油安驰加油站","owner":"王镜博","dept":"销售十三部","area":"","customer":"成工（北京鼎晟鑫建筑工程有限公司）","product":"报警 防火门 漏电 消防电源监控 智能疏散","classify":"备案项目","ptype":"民商用/商业服务建筑","build":"维修改造","stage":"外装修","amount":"","discount":"","desc":"","evac":"尚不明确","customerType":"消防公司","customerQual":"二级资质","contact":"其他","customerAddr":"北京市房山区西潞街道长虹西路73号1幢1层C85","filing":"2026-06-16","expire":"2026-12-10","created":"2026-06-16","lastSign":"2026-11-19","signCount":"9","quoteTimes":"0","quoted":"未报","source":"扫街 扫街","lastRecord":"项目仍处于停工状态","duration":"","vertical":"","signs":[{"date":"2026-11-19","note":"项目仍处于停工状态"},{"date":"2026-10-30","note":"项目处于停工状态"},{"date":"2026-10-08","note":"停工"},{"date":"2026-09-08","note":"停工"},{"date":"2026-08-19","note":"停工"},{"date":"2026-07-30","note":"停工"},{"date":"2026-07-29","note":"远程跟进"},{"date":"2026-07-09","note":"未动工"},{"date":"2026-06-16","note":"根据现场保安反馈，围挡竖起来已经有一年多，什么时候动工是否有中标单位不清楚。"}],"fields":[["项目名称","乐家生活馆翻新项目"],["项目地址","北京市大兴区西红门镇京良路中国石油安驰加油站"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["客户信息","成工（北京鼎晟鑫建筑工程有限公司）"],["产品类型","报警 防火门 漏电 消防电源监控 智能疏散"],["项目类型","民商用/商业服务建筑"],["是否报价","未报"],["项目来源","扫街 扫街"],["项目类型（2）","新建项目"],["智能疏散跟进情况","尚不明确"],["项目进度","外装修"],["建设类型","维修改造"],["备案时间","2026/06/16"],["公司性质","消防公司"],["公司资质","二级资质"],["挂靠","否"],["职位","其他"],["公司地址","北京市房山区西潞街道长虹西路73号1幢1层C85"],["项目分类","备案项目"],["项目进度（2）","外装修"],["项目签到次数","9"],["未跟进天数","2026-11-19 13:37:14"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","项目仍处于停工状态"],["备案顺序","第1备案人"],["是否海外项目","否"],["是否改造项目","是 其他"],["创建时间","2026/06/16"],["非备案人报价项目分类时间","2026/06/16"],["最后一次签到时间","2026/11/19"],["失效时间","2026/12/10"],["备案项目分类时间","2026/06/16"]],"lat":39.781,"lng":116.33,"geo":"exact"},{"name":"北京市三环英和医院改造工程","addr":"北京市丰台区休闲街1层","owner":"王镜博","dept":"销售十三部","area":"","customer":"卢总（北京市通盛达市政公用工程有限公司）","product":"报警 智能疏散","classify":"备案项目","ptype":"","build":"维修改造","stage":"投标","amount":"报警:10743.75;防火门:2015.2;","discount":"报警:0.50;防火门:0.80;","desc":"","evac":"原220v的","customerType":"消防公司","customerQual":"无","contact":"经理","customerAddr":"北京市东城区藏经馆胡同17号1幢一层1886室","filing":"2025-12-10","expire":"2026-11-30","created":"2025-12-10","lastSign":"2026-11-09","signCount":"18","quoteTimes":"0","quoted":"已报","source":"工程公司 客户","lastRecord":"客户运做","duration":"","vertical":"","signs":[{"date":"2026-10-25","note":"客户运做"},{"date":"2026-10-06","note":"跟进"},{"date":"2026-09-08","note":"跟进"},{"date":"2026-08-23","note":"跟进"},{"date":"2026-08-05","note":"跟进"},{"date":"2026-07-21","note":"客户运作"},{"date":"2026-07-03","note":"客户运作"},{"date":"2026-06-17","note":"客户运作中"},{"date":"2026-05-29","note":"客户运作中"},{"date":"2026-05-13","note":"客户未进场"},{"date":"2026-04-21","note":"客户与甲方还在沟通中"},{"date":"2026-04-01","note":"客户与甲方还在谈"},{"date":"2026-03-16","note":"基本客户做，近期在跟甲方谈价格"},{"date":"2026-02-28","note":"客户做"},{"date":"2026-02-08","note":"客户做"},{"date":"2026-01-19","note":"客户做"},{"date":"2025-12-30","note":"客户运作"},{"date":"2025-12-10","note":"疏散为220V设备，加装报警系统"}],"fields":[["项目名称","北京市三环英和医院改造工程"],["项目地址","北京市丰台区休闲街1层"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["客户信息","卢总（北京市通盛达市政公用工程有限公司）"],["产品类型","报警 智能疏散"],["是否报价","已报"],["项目来源","工程公司 客户"],["项目类型","新建项目"],["智能疏散跟进情况","原220v的"],["项目进度","投标"],["建设类型","维修改造"],["备案时间","2025/12/10"],["预计合同金额","报警:10743.75;防火门:2015.2;"],["折扣信息","报警:0.50;防火门:0.80;"],["公司性质","消防公司"],["公司资质","无"],["挂靠","否"],["职位","经理"],["公司地址","北京市东城区藏经馆胡同17号1幢一层1886室"],["项目分类","备案项目"],["项目进度（2）","投标"],["项目签到次数","18"],["未跟进天数","2026-11-09 15:42:18"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","客户运做"],["备案顺序","第1备案人"],["是否海外项目","否"],["是否改造项目","否"],["创建时间","2025/12/10"],["非备案人报价项目分类时间","2025/12/10"],["最后一次签到时间","2026/11/09"],["失效时间","2026/11/30"],["备案项目分类时间","2025/12/10"]],"lat":39.848,"lng":116.332,"geo":"exact"},{"name":"北蜂窝路5号院气灭区改造项目","addr":"北京市西城区","owner":"王镜博","dept":"销售十三部","area":"","customer":"张书杰（北京友安盛防火技术有限公司）","product":"报警","classify":"备案项目","ptype":"","build":"维修改造","stage":"内装修","amount":"报警:72960.6;","discount":"报警:0.60;","desc":"甲方询价之前是法安通设备","evac":"只改气灭区","customerType":"消防工程公司","customerQual":"一级资质","contact":"采购经理","customerAddr":"北京市门头沟区石龙经济开发区永安路20号3号楼A-3990室","filing":"2025-04-07","expire":"2026-12-10","created":"2025-04-07","lastSign":"2026-11-19","signCount":"29","quoteTimes":"0","quoted":"已报","source":"工程公司 客户","lastRecord":"第二次电话跟进，现场无进展，未开工","duration":"","vertical":"","signs":[{"date":"2026-11-19","note":"第二次电话跟进，现场无进展，未开工"},{"date":"2026-10-30","note":"配合客户做各系统报价"},{"date":"2026-09-11","note":"跟进中"},{"date":"2026-08-21","note":"跟进中"},{"date":"2026-08-02","note":"跟进中"},{"date":"2026-07-13","note":"跟进项目"},{"date":"2026-06-25","note":"跟进中"},{"date":"2026-06-03","note":"跟进中"},{"date":"2026-05-13","note":"跟进中"},{"date":"2026-04-18","note":"跟进中"},{"date":"2026-03-25","note":"跟进中"},{"date":"2026-03-04","note":"跟进中"},{"date":"2026-02-11","note":"跟进中"},{"date":"2026-01-23","note":"跟进中"},{"date":"2026-01-02","note":"跟进中"},{"date":"2025-12-12","note":"改造项目"},{"date":"2025-11-24","note":"跟进中"},{"date":"2025-11-03","note":"跟进中"},{"date":"2025-10-13","note":"跟进中"},{"date":"2025-09-22","note":"跟进中"},{"date":"2025-09-02","note":"跟进项目，今年改不上"},{"date":"2025-08-13","note":"跟进项目"},{"date":"2025-07-24","note":"跟进中"},{"date":"2025-07-03","note":"明年采购"},{"date":"2025-06-13","note":"跟进中"},{"date":"2025-05-23","note":"气灭区整改方案已经报给物业，明年换设备"},{"date":"2025-05-18","note":"报整改计划"},{"date":"2025-04-28","note":"整改报给甲方方案"},{"date":"2025-04-07","note":"改造甲方想把法安通换了"}],"fields":[["项目名称","北蜂窝路5号院气灭区改造项目"],["项目地址","北京市西城区"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["项目情况描述","甲方询价之前是法安通设备"],["客户信息","张书杰（北京友安盛防火技术有限公司）"],["产品类型","报警"],["是否报价","已报"],["项目来源","工程公司 客户"],["项目类型","新建项目"],["智能疏散跟进情况","只改气灭区"],["项目进度","内装修"],["建设类型","维修改造"],["备案时间","2025/04/07"],["预计合同金额","报警:72960.6;"],["折扣信息","报警:0.60;"],["公司性质","消防工程公司"],["公司资质","一级资质"],["挂靠","否"],["职位","采购经理"],["公司地址","北京市门头沟区石龙经济开发区永安路20号3号楼A-3990室"],["项目分类","备案项目"],["项目进度（2）","内装修"],["项目签到次数","29"],["未跟进天数","2026-11-19 13:49:23"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","第二次电话跟进，现场无进展，未开工"],["备案顺序","第4备案人"],["是否海外项目","否"],["是否改造项目","否"],["创建时间","2025/04/07"],["非备案人报价项目分类时间","2025/04/07"],["最后一次签到时间","2026/11/19"],["失效时间","2026/12/10"],["备案项目分类时间","2025/04/07"]],"lat":39.901,"lng":116.326,"geo":"exact"},{"name":"北京市朝阳区东坝车辆基地综合利用项目三期","addr":"北京市朝阳区东坝路与西坝街交叉口东北380米","owner":"王镜博","dept":"销售十三部","area":"","customer":"张铁英（北京金海龙机电工程有限责任公司）","product":"报警 漏电 防火门 消防电源监控","classify":"备案项目","ptype":"民商用/房地产/住宅","build":"新建","stage":"挖槽","amount":"报警:3255;","discount":"报警:10.00;","desc":"客户中标3，4，5，6，7，8，今年施工一期二期和三期。","evac":"疏散中科","customerType":"消防工程公司","customerQual":"一级资质","contact":"采购经理","customerAddr":"石景山区石景山路23号22号楼七层718室","filing":"2025-03-18","expire":"2026-12-04","created":"2025-03-18","lastSign":"2026-11-13","signCount":"31","quoteTimes":"0","quoted":"已报","source":"工程公司 客户","lastRecord":"项目前期，挖槽状态","duration":"","vertical":"","signs":[{"date":"2026-11-13","note":"项目前期，挖槽状态"},{"date":"2026-10-30","note":"客户中标，预计明年开始施工"},{"date":"2026-09-21","note":"跟进中"},{"date":"2026-09-03","note":"土建"},{"date":"2026-08-13","note":"土建施工"},{"date":"2026-07-23","note":"跟进中"},{"date":"2026-07-02","note":"跟进中"},{"date":"2026-05-28","note":"跟进中"},{"date":"2026-05-08","note":"跟进中"},{"date":"2026-04-14","note":"正在土建"},{"date":"2026-03-31","note":"跟进中"},{"date":"2026-03-12","note":"正在土建"},{"date":"2026-02-23","note":"跟进中"},{"date":"2026-02-03","note":"跟进中"},{"date":"2026-01-13","note":"跟进中"},{"date":"2025-12-23","note":"明年采购"},{"date":"2025-12-02","note":"跟进中"},{"date":"2025-11-11","note":"明年项目"},{"date":"2025-10-21","note":"三期正在土建，明年施工"},{"date":"2025-10-07","note":"跟进中"},{"date":"2025-09-17","note":"跟进中"},{"date":"2025-08-28","note":"跟进中"},{"date":"2025-08-07","note":"跟进中"},{"date":"2025-07-17","note":"跟进中"},{"date":"2025-06-27","note":"已经投完标"},{"date":"2025-06-06","note":"三期刚投完标"},{"date":"2025-05-16","note":"跟进中"},{"date":"2025-04-28","note":"客户已经投标明年的项目"},{"date":"2025-04-07","note":"客户配合投标封样，三期还未起主体"},{"date":"2025-03-18","note":"一期已经用青鸟后期八个标段都是用青鸟品牌"}],"fields":[["项目名称","北京市朝阳区东坝车辆基地综合利用项目三期"],["项目地址","北京市朝阳区东坝路与西坝街交叉口东北380米"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["项目情况描述","客户中标3，4，5，6，7，8，今年施工一期二期和三期。"],["客户信息","张铁英（北京金海龙机电工程有限责任公司）"],["产品类型","报警 漏电 防火门 消防电源监控"],["项目类型","民商用/房地产/住宅"],["是否报价","已报"],["项目来源","工程公司 客户"],["项目类型（2）","新建项目"],["智能疏散跟进情况","疏散中科"],["项目进度","挖槽"],["建设类型","新建"],["备案时间","2025/03/18"],["预计合同金额","报警:3255;"],["折扣信息","报警:10.00;"],["公司性质","消防工程公司"],["公司资质","一级资质"],["挂靠","是"],["职位","采购经理"],["公司地址","石景山区石景山路23号22号楼七层718室"],["项目分类","备案项目"],["项目进度（2）","挖槽"],["项目签到次数","31"],["未跟进天数","2026-11-13 10:45:31"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","项目前期，挖槽状态"],["备案顺序","第3备案人"],["是否海外项目","否"],["是否改造项目","否"],["创建时间","2025/03/18"],["非备案人报价项目分类时间","2025/03/18"],["最后一次签到时间","2026/11/13"],["失效时间","2026/12/04"],["备案项目分类时间","2025/03/18"]],"lat":39.962,"lng":116.568,"geo":"exact"},{"name":"丰台区城乡一体化周庄子村旧村改造项目二期ZZZ-06等地块(配建“共有产权住房”)项目ZZZ-L01(东)、ZZZ-L04(东)绿隔产业用地(含经济型酒店)","addr":"北京市丰台区丰台区","owner":"王镜博","dept":"销售十三部","area":"","customer":"金爱华（北京中淦新科建设工程有限公司）","product":"报警 智能疏散 防火门 漏电 消防电源监控 余压监控","classify":"备案项目","ptype":"民商用/房地产/住宅","build":"新建","stage":"挖槽","amount":"报警:3695;智能疏散:1480;","discount":"报警:10.00;智能疏散:10.00;","desc":"","evac":"跟进中","customerType":"总包","customerQual":"一级资质","contact":"项目经理","customerAddr":"北京市丰台区丰桥路六号院甲11号1层101内104","filing":"2023-08-25","expire":"2026-12-09","created":"2023-08-25","lastSign":"2026-11-18","signCount":"79","quoteTimes":"0","quoted":"已报","source":"扫街 扫街","lastRecord":"客户中标全系统，给客户送展板","duration":"","vertical":"","signs":[{"date":"2026-11-10","note":"消防招标中，王总说等结果出来帮忙引荐"},{"date":"2026-10-21","note":"消防招标中，预计年底进场"},{"date":"2026-09-23","note":"写字楼三四层了，机电年底进场"},{"date":"2026-09-14","note":"现场跟进，主机搭建中，预计明年要配备，中秋前再来见一趟王工"},{"date":"2026-08-24","note":"现场跟进，主体搭建中，甲方王经理在开会，机电未进场"},{"date":"2026-08-11","note":"现场跟进，项目刚正负零，竞争对手利达"},{"date":"2026-07-23","note":"现场跟进，主体搭建中"},{"date":"2026-07-22","note":"明天现场跟进"},{"date":"2026-07-02","note":"现场跟进，联系甲方和总包，主体搭建中"},{"date":"2026-06-10","note":"项目地下施工中，进度比较慢"},{"date":"2026-06-10","note":"一会儿现场跟进"},{"date":"2026-05-20","note":"跟进甲方王经理，28年竣工，项目会刻意拖进度，27下半年消防才会进场，甲方答应帮忙推品牌。"},{"date":"2026-05-19","note":"总包进场，约了王总明天"},{"date":"2026-04-23","note":"联系甲方，现场开会不方便进，项目搭建钢架中"},{"date":"2026-04-10","note":"现场打卡，跟进甲方及总包"},{"date":"2026-03-19","note":"见甲方，消防大概率北京市通盛达市政公用工程有限公司中标，预计明年采购设备。报警疏散都是分包采。"},{"date":"2026-03-19","note":"总包进场，一会现场跟进"},{"date":"2026-02-26","note":"春节暂未开工"},{"date":"2026-02-05","note":"跟进工程部王总，设备由施工方采购，未定品牌"},{"date":"2026-01-15","note":"中淦新科进场，无品牌指定，消防施工采购设备"},{"date":"2025-12-26","note":"现场跟进，中淦新科进场，现场还没联系人"},{"date":"2025-12-26","note":"一会现场跟进"},{"date":"2025-12-05","note":"中建一局办公区撤了，但是还在谈，还没定最后谁做"},{"date":"2025-11-17","note":"现场跟进，中建一局撤场，未确定新总包是哪家"},{"date":"2025-11-14","note":"甲方换总包，新总包还未进场"},{"date":"2025-10-24","note":"中建一局退场"},{"date":"2025-10-10","note":"总包暂未进场"},{"date":"2025-09-29","note":"跟进中，暂无进展"},{"date":"2025-09-11","note":"现场跟进，原总包还未退场"},{"date":"2025-08-25","note":"总包中建一局三准备退场了，可能换懋源地产 中淦新科做"},{"date":"2025-08-04","note":"总包 中建一局三"},{"date":"2025-07-31","note":"现场跟进，一部分主体已建完，有其他楼在建"},{"date":"2025-07-14","note":"现场跟进"},{"date":"2025-06-24","note":"现场跟进项目，几个楼已封顶，几个楼在新建中。"},{"date":"2025-06-03","note":"拜访金爱华"},{"date":"2025-05-10","note":"现场跟进主体基本完事"},{"date":"2025-04-21","note":"项目有一定变动，目前有利达在竞争。"},{"date":"2025-04-01","note":"现场跟进"},{"date":"2025-03-12","note":"现场跟进，主体建设中。"},{"date":"2025-02-20","note":"现场跟进"},{"date":"2025-02-01","note":"春节期间不去现场符合政策"},{"date":"2025-01-13","note":"现场跟进项目"},{"date":"2024-12-23","note":"跟进现场，拜访于总，消防甲指"},{"date":"2024-12-03","note":"沟通技术情况，消防甲指，智能疏散可能给水电分公司或者消防，待定。"},{"date":"2024-12-03","note":"现场跟进该项目，配合客户进行技术交底，继续确认消防施工单位。"},{"date":"2024-11-12","note":"现场跟进拜访于总，目前消防在洽谈中，很快就走招标流程了。"},{"date":"2024-11-12","note":"一会儿现场打卡"},{"date":"2024-10-22","note":"于总出差，金总没在，消防甲指，中建这边水电公司都没进来，中淦那边应该有意向了，甲方自己的公司。"},{"date":"2024-10-01","note":"下次去现场。重要假期期间未去现场，符合划分基础业绩政策。"},{"date":"2024-09-12","note":"机电为刘瑞涛老客户。马上进出"}],"fields":[["项目名称","丰台区城乡一体化周庄子村旧村改造项目二期ZZZ-06等地块(配建“共有产权住房”)项目ZZZ-L01(东)、ZZZ-L04(东)绿隔产业用地(含经济型酒店)"],["项目地址","北京市丰台区丰台区"],["业务员","王镜博"],["部门","销售十三部"],["审批类型","直销项目"],["客户信息","金爱华（北京中淦新科建设工程有限公司）"],["产品类型","报警 智能疏散 防火门 漏电 消防电源监控 余压监控"],["项目类型","民商用/房地产/住宅"],["是否报价","已报"],["项目来源","扫街 扫街"],["项目类型（2）","新建项目"],["智能疏散跟进情况","跟进中"],["项目进度","挖槽"],["建设类型","新建"],["备案时间","2023/08/25"],["预计合同金额","报警:3695;智能疏散:1480;"],["折扣信息","报警:10.00;智能疏散:10.00;"],["公司性质","总包"],["公司资质","一级资质"],["挂靠","否"],["职位","项目经理"],["公司地址","北京市丰台区丰桥路六号院甲11号1层101内104"],["项目分类","备案项目"],["项目进度（2）","挖槽"],["项目签到次数","79"],["未跟进天数","2026-11-18 17:03:09"],["申请报价次数","0"],["中标情况","否"],["最后一次签到记录","客户中标全系统，给客户送展板"],["备案顺序","第1备案人"],["是否海外项目","否"],["是否改造项目","否"],["创建时间","2023/08/25"],["非备案人报价项目分类时间","2023/08/25"],["最后一次签到时间","2026/11/18"],["失效时间","2026/12/09"],["备案项目分类时间","2023/08/25"]],"lat":39.845,"lng":116.295,"geo":"exact"}],"generated_at":"2026-11-21T13:43:39+08:00"};
+/*__EMBEDDED_END__*/
+
+/* ================= 基础工具 ================= */
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+const DAY = 86400000;
+function parseDate(s){ if(!s) return null; const d = new Date(s + 'T00:00:00'); return isNaN(d) ? null : d; }
+function daysLeft(p){ const d = parseDate(p.expire); if(!d) return null; return Math.round((d - TODAY) / DAY); }
+function level(p){
+  const n = daysLeft(p);
+  if(n === null) return 'none';
+  if(n < 0) return 'expired';
+  if(n <= 7) return 'danger';
+  if(n <= 14) return 'warn';
+  return 'ok';
+}
+const COLOR = {danger:'#e11d48', warn:'#f59e0b', ok:'#0f9d58', expired:'#94a3b8', none:'#94a3b8'};
+const LEVEL_TEXT = {danger:'7 天内', warn:'8–14 天', ok:'15 天以上', expired:'已失效', none:'无失效日期'};
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function inBeijing(p){ return p.lat && p.lng && p.lat > 39.3 && p.lat < 41.2 && p.lng > 115.2 && p.lng < 117.6; }
+function leftText(n){ if(n===null) return '—'; return n < 0 ? '已失效 ' + Math.abs(n) + ' 天' : n + ' 天'; }
+
+/* WGS84 → GCJ-02：坐标按高德底图纠偏，避免整体偏移 */
+const PI = Math.PI, AXIS = 6378245.0, ECC = 0.00669342162296594323;
+function outOfChina(lat, lng){ return !(lng > 73.66 && lng < 135.05 && lat > 3.86 && lat < 53.55); }
+function tLat(x, y){
+  let r = -100 + 2*x + 3*y + 0.2*y*y + 0.1*x*y + 0.2*Math.sqrt(Math.abs(x));
+  r += (20*Math.sin(6*x*PI) + 20*Math.sin(2*x*PI)) * 2/3;
+  r += (20*Math.sin(y*PI) + 40*Math.sin(y/3*PI)) * 2/3;
+  r += (160*Math.sin(y/12*PI) + 320*Math.sin(y*PI/30)) * 2/3;
+  return r;
+}
+function tLng(x, y){
+  let r = 300 + x + 2*y + 0.1*x*x + 0.1*x*y + 0.1*Math.sqrt(Math.abs(x));
+  r += (20*Math.sin(6*x*PI) + 20*Math.sin(2*x*PI)) * 2/3;
+  r += (20*Math.sin(x*PI) + 40*Math.sin(x/3*PI)) * 2/3;
+  r += (150*Math.sin(x/12*PI) + 300*Math.sin(x/30*PI)) * 2/3;
+  return r;
+}
+function wgs2gcj(lat, lng){
+  if(outOfChina(lat, lng)) return [lat, lng];
+  let dLat = tLat(lng - 105, lat - 35), dLng = tLng(lng - 105, lat - 35);
+  const radLat = lat / 180 * PI;
+  let magic = Math.sin(radLat); magic = 1 - ECC * magic * magic;
+  const sq = Math.sqrt(magic);
+  dLat = (dLat * 180) / ((AXIS * (1 - ECC)) / (magic * sq) * PI);
+  dLng = (dLng * 180) / (AXIS / sq * Math.cos(radLat) * PI);
+  return [lat + dLat, lng + dLng];
+}
+function applyGeo(list){
+  list.forEach(p => {
+    if(!inBeijing(p)) return;
+    const g = wgs2gcj(p.lat, p.lng);
+    p.glat = g[0]; p.glng = g[1];
+  });
+  /* 坐标相近的项目做少量错位，避免圆点叠在一起看不清 */
+  const placed = [];
+  list.filter(inBeijing).forEach(p => {
+    p.mlat = p.glat; p.mlng = p.glng;
+    for(let i = 0; i < 24; i++){
+      const clash = placed.some(q => Math.abs(q.lat - p.mlat) < 0.0245 && Math.abs(q.lng - p.mlng) < 0.0275);
+      if(!clash) break;
+      const ang = (i * 137.5) * PI / 180;
+      p.mlat = p.glat + 0.0105 * Math.sin(ang) * (1 + Math.floor(i / 4));
+      p.mlng = p.glng + 0.0115 * Math.cos(ang) * (1 + Math.floor(i / 4));
+    }
+    placed.push({lat: p.mlat, lng: p.mlng});
+  });
+}
+
+/* ================= 地图 ================= */
+const map = L.map('map', {zoomControl:true, attributionControl:true, minZoom:9, maxZoom:18})
+  .setView([39.94, 116.44], 11);
+
+const street = L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+  subdomains: ['1','2','3','4'], maxZoom: 18, attribution: '底图 © 高德地图 · 数据：备案项目表'
+}).addTo(map);
+
+const sat = L.tileLayer('https://webst0{s}.is.autonavi.com/appmaptile?style=6&x={x}&y={y}&z={z}', {
+  subdomains: ['1','2','3','4'], maxZoom: 18, attribution: '影像 © 高德地图'
+});
+L.control.layers({'街道图': street, '卫星影像': sat}, null, {position:'topright'}).addTo(map);
+L.control.scale({imperial:false, position:'bottomright'}).addTo(map);
+
+/* ================= 标记 ================= */
+const markers = {};
+const isMobile = () => window.innerWidth <= 820;
+const pinSize = () => isMobile() ? 54 : 68;
+
+function markerIcon(p){
+  const n = daysLeft(p), c = COLOR[level(p)], s = pinSize();
+  return L.divIcon({
+    className: 'marker-wrap',
+    html: '<div class="pin" id="pin-'+p._id+'" style="background:'+c+';width:'+s+'px;height:'+s+'px;font-size:'+Math.round(s*0.37)+'px">'+(n!==null && n>=0 ? n : '×')+'</div>',
+    iconSize: [s, s], iconAnchor: [s/2, s/2]
+  });
+}
+
+function buildMarkers(){
+  Object.keys(markers).forEach(k => { map.removeLayer(markers[k]); delete markers[k]; });
+  PROJECTS.filter(inBeijing).forEach(p => {
+    const m = L.marker([p.mlat, p.mlng], {icon: markerIcon(p), riseOnHover:true, title:p.name}).addTo(map);
+    m.bindTooltip(tipHTML(p, false), {className:'proj-tip', direction:'auto', offset:[pinSize()/2+4,0], opacity:1, sticky:false});
+    m.bindPopup(tipHTML(p, true), {
+      className:'proj-card', maxWidth:320, minWidth:290, offset:[0,-Math.round(pinSize()/2)],
+      closeButton:false, autoPan:true, autoPanPadding:[16,16], closeOnClick:true
+    });
+    m.on('click', (e) => {
+      if(e.originalEvent) L.DomEvent.stopPropagation(e.originalEvent);
+      m.closeTooltip();
+      m.openPopup();
+    });
+    markers[p._id] = m;
+  });
+}
+
+function tipHTML(p, withMenu){
+  const n = daysLeft(p), lv = level(p);
+  let html = '<div class="tip">'
+    + '<h4>' + esc(p.name) + '</h4>'
+    + '<div class="l"><span>位置</span><b>' + esc(p.addr || '—') + '</b></div>'
+    + '<div class="l"><span>失效</span><b>' + esc(p.expire || '—') + '</b></div>'
+    + '<div class="alert"><span class="t">距离失效</span>'
+    + '<span class="big c-' + (lv==='ok'?'ok':lv==='warn'?'warn':lv==='danger'?'danger':'exp') + '">' + leftText(n) + '</span></div>';
+  if(withMenu){
+    html += '<div class="tip-menu">'
+      + '<div class="tip-go" data-id="' + p._id + '">'
+      + '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zm2 14H8v-2h8zm0-4H8v-2h8zM13 9V3.5L18.5 9z"/></svg>'
+      + '<span>查看项目明细</span><span class="arrow">›</span></div>'
+      + '</div>';
+  }else{
+    html += '<div class="tip-tip">点击圆点可查看详情选项</div>';
+  }
+  return html + '</div>';
+}
+
+/* ================= 状态与列表 ================= */
+const state = {q:'', filter:'all', sel:null};
+const FILTERS = [
+  {k:'all',   t:'全部'},
+  {k:'danger',t:'7 天内'},
+  {k:'warn',  t:'8–14 天'},
+  {k:'ok',    t:'15 天以上'},
+];
+
+function filtered(){
+  const q = state.q.trim();
+  return PROJECTS.filter(p => {
+    if(state.filter !== 'all' && level(p) !== state.filter) return false;
+    if(!q) return true;
+    const hay = [p.name,p.addr,p.customer,p.owner,p.product,p.stage,p.desc,p.lastRecord].join(' ').toLowerCase();
+    return hay.includes(q.toLowerCase());
+  }).sort((a,b)=>{
+    const A = daysLeft(a), B = daysLeft(b);
+    if(A===null) return 1; if(B===null) return -1;
+    return A - B;
+  });
+}
+
+function renderStats(){
+  const bj = PROJECTS.filter(inBeijing);
+  const d7 = PROJECTS.filter(p=>{const n=daysLeft(p); return n!==null && n>=0 && n<=7;}).length;
+  const d14 = PROJECTS.filter(p=>{const n=daysLeft(p); return n!==null && n>=0 && n<=14;}).length;
+  const out = PROJECTS.length - bj.length;
+  document.getElementById('stats').innerHTML =
+    '<div class="stat"><b>'+bj.length+'</b>北京项目</div>'
+    + '<div class="stat danger"><b>'+d7+'</b>7 天内失效</div>'
+    + '<div class="stat warn"><b>'+d14+'</b>14 天内失效</div>'
+    + '<div class="stat"><b>'+out+'</b>异地项目</div>';
+}
+
+function district(addr){
+  const m = String(addr||'').match(/(东城区|西城区|朝阳区|海淀区|丰台区|石景山区|通州区|大兴区|昌平区|顺义区|房山区|门头沟区|平谷区|怀柔区|密云区|延庆区)/);
+  return m ? m[1] : '';
+}
+
+function renderChips(){
+  const counts = {all:PROJECTS.length, danger:0, warn:0, ok:0};
+  PROJECTS.forEach(p=>{ const lv = level(p); if(counts[lv]!==undefined) counts[lv]++; });
+  document.getElementById('chips').innerHTML = FILTERS.map(f =>
+    '<button class="chip'+(state.filter===f.k?' on':'')+'" data-k="'+f.k+'">'+f.t+'<span class="n">'+counts[f.k]+'</span></button>'
+  ).join('');
+  document.querySelectorAll('.chip').forEach(c => c.onclick = () => { state.filter = c.dataset.k; renderChips(); renderList(); });
+}
+
+function renderList(){
+  const arr = filtered();
+  const el = document.getElementById('list');
+  if(!arr.length){ el.innerHTML = '<div class="empty">没有匹配的项目</div>'; return; }
+  el.innerHTML = arr.map((p,i) => {
+    const n = daysLeft(p), lv = level(p);
+    const cls = 'p-' + lv;
+    return '<div class="row'+(state.sel===p._id?' on':'')+'" data-id="'+p._id+'">'
+      + '<div class="row-top"><span class="idx">'+(i+1)+'</span>'
+      + '<div class="row-name">'+esc(p.name)+'</div></div>'
+      + '<div class="row-meta">'
+      + '<span class="pill '+cls+'">'+leftText(n)+'</span>'
+      + (district(p.addr) ? '<span>'+district(p.addr)+'</span>' : '')
+      + '<span>失效 '+esc(p.expire||'—')+'</span>'
+      + (inBeijing(p) ? '' : '<span class="tag-out">异地</span>')
+      + '</div></div>';
+  }).join('');
+  el.querySelectorAll('.row').forEach(r => r.onclick = () => select(+r.dataset.id, true));
+}
+
+/* ================= 详情 ================= */
+function kv(rows){
+  return '<div class="kv">' + rows.filter(r=>r[1]).map(r => '<div class="k">'+r[0]+'</div><div class="v">'+esc(r[1])+'</div>').join('') + '</div>';
+}
+
+function amapUrl(p){
+  const bj = inBeijing(p);
+  const lat = bj ? p.glat : p.lat, lng = bj ? p.glng : p.lng;
+  const coord = bj ? 'gaode' : 'wgs84';
+  const name = (p.name || '').slice(0, 40) + ' · 备案项目';
+  return 'https://uri.amap.com/marker?position=' + lng + ',' + lat
+    + '&name=' + encodeURIComponent(name)
+    + '&src=' + encodeURIComponent('备案项目地图')
+    + '&coordinate=' + coord + '&callnative=1';
+}
+
+function renderDetail(p){
+  const n = daysLeft(p), lv = level(p);
+  const color = COLOR[lv];
+  const total = (()=>{ const a = parseDate(p.filing), b = parseDate(p.expire); if(!a||!b) return null; return Math.max(1, Math.round((b-a)/DAY)); })();
+  const used = (()=>{ const a = parseDate(p.filing); if(!a) return null; return Math.round((TODAY-a)/DAY); })();
+  const pct = (total && used!==null) ? Math.min(100, Math.max(0, used/total*100)) : 100;
+
+  document.getElementById('dTitle').textContent = p.name;
+
+  let html = '';
+  html += '<div class="count">'
+    + '<div class="k">距离失效 · 剩余天数</div>'
+    + '<div class="v"><b style="color:'+color+'">'+(n===null?'—':(n<0? Math.abs(n) : n))+'</b>'
+    + '<i>'+(n===null?'':(n<0?'天 前已失效':'天')+'　'+LEVEL_TEXT[lv])+'</i></div>'
+    + '<div class="bar"><span style="width:'+pct+'%;background:'+color+'"></span></div>'
+    + '<div class="tk"><span>备案 '+esc(p.filing||'—')+'</span><span>失效 '+esc(p.expire||'—')+'</span></div>'
+    + '</div>';
+
+  html += '<div class="acts">'
+    + '<a class="act amap" href="'+amapUrl(p)+'" target="_blank" rel="noopener">'
+    + '<svg viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 9.6a2.6 2.6 0 1 1 0-5.2 2.6 2.6 0 0 1 0 5.2z"/></svg>'
+    + '在高德地图中打开 / 导航</a>'
+    + '<div class="act-note">手机端会唤起高德地图 App，电脑端打开高德网页版</div>'
+    + '</div>';
+
+  html += '<div class="sec"><h5>项目日期</h5><div class="dates">'
+    + '<div class="dcell"><div class="k">备案时间</div><div class="v">'+esc(p.filing||'—')+'</div></div>'
+    + '<div class="dcell hot"><div class="k">失效时间</div><div class="v">'+esc(p.expire||'—')+'</div></div>'
+    + '<div class="dcell"><div class="k">最后一次签到</div><div class="v">'+esc(p.lastSign||'—')+'</div></div>'
+    + '<div class="dcell"><div class="k">签到次数</div><div class="v">'+(p.signCount||0)+' 次</div></div>'
+    + '</div></div>';
+
+  html += '<div class="sec"><h5>项目信息</h5>' + kv([
+    ['项目地址', p.addr],
+    ['业务员', p.owner + (p.dept ? ' · ' + p.dept : '')],
+    ['客户信息', p.customer],
+    ['客户性质', [p.customerType, p.customerQual, p.contact].filter(Boolean).join(' · ')],
+    ['产品类型', p.product],
+    ['项目类型', [p.classify, p.ptype, p.build].filter(Boolean).join(' · ')],
+    ['项目进度', p.stage],
+    ['预计金额', p.amount],
+    ['折扣信息', p.discount],
+    ['项目来源', p.source],
+    ['是否报价', p.quoted],
+    ['智能疏散', p.evac],
+    ['情况描述', p.desc],
+    ['客户地址', p.customerAddr]
+  ]) + '</div>';
+
+  html += '<div class="sec"><h5>跟进记录</h5>';
+  if(p.signs && p.signs.length){
+    html += '<div class="timeline">' + p.signs.slice(0, 40).map(s =>
+      '<div class="tl"><div class="d">'+esc(s.date)+'</div><div class="t">'+esc(s.note || '—')+'</div></div>'
+    ).join('') + '</div>';
+  } else {
+    html += '<div class="empty">暂无签到记录</div>';
+  }
+  html += '</div>';
+
+  if(p.fields && p.fields.length){
+    html += '<div class="sec"><h5>全部字段 · 只读</h5>'
+      + '<details class="all"><summary>展开 <b>'+p.fields.length+'</b> 项（飞书表 158 列，只显示非空值）</summary>'
+      + '<div class="kv">' + p.fields.map(f =>
+          '<div class="k">'+esc(f[0])+'</div><div class="v">'+esc(f[1])+'</div>'
+        ).join('') + '</div></details></div>';
+  }
+
+  document.getElementById('dBody').innerHTML = html;
+  document.getElementById('dBody').scrollTop = 0;
+}
+
+/* ================= 交互 ================= */
+function select(id, pan){
+  state.sel = id;
+  const p = PROJECTS[id];
+  renderDetail(p);
+  if(markers[id]) markers[id].closePopup();
+  document.getElementById('drawer').classList.add('open');
+  if(isMobile()){
+    document.getElementById('sidebar').classList.remove('open');
+    const f = document.getElementById('fab');
+    f.style.opacity = '0'; f.style.pointerEvents = 'none';
+  }
+  document.querySelectorAll('.pin').forEach(x => x.classList.remove('sel'));
+  const pin = document.getElementById('pin-'+id);
+  if(pin) pin.classList.add('sel');
+  renderList();
+  if(pan && markers[id]){
+    const z = isMobile() ? Math.max(map.getZoom(), 13) : Math.max(map.getZoom(), 13);
+    map.flyTo([p.mlat, p.mlng], z, {duration:0.6});
+    markers[id].openTooltip();
+    setTimeout(()=>markers[id].closeTooltip(), 3500);
+  }
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  state.sel = null;
+  document.querySelectorAll('.pin').forEach(x => x.classList.remove('sel'));
+  renderList();
+  if(isMobile()){
+    const f = document.getElementById('fab');
+    f.style.opacity = '1'; f.style.pointerEvents = 'auto';
+  }
+}
+document.getElementById('closeBtn').onclick = closeDrawer;
+document.addEventListener('keydown', e => { if(e.key === 'Escape') closeDrawer(); });
+document.getElementById('q').oninput = e => { state.q = e.target.value; renderList(); };
+
+/* 点悬停卡片里的“查看项目明细”，直接进入详情 */
+document.addEventListener('click', e => {
+  const go = e.target.closest ? e.target.closest('.tip-go') : null;
+  if(!go) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const id = +go.dataset.id;
+  if(markers[id]) markers[id].closeTooltip();
+  select(id, false);
+}, true);
+
+document.addEventListener('touchend', e => {
+  const go = e.target.closest ? e.target.closest('.tip-go') : null;
+  if(!go) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const id = +go.dataset.id;
+  if(markers[id]) markers[id].closeTooltip();
+  select(id, false);
+}, true);
+
+/* 手机端：底部弹出项目列表 */
+const fab = document.getElementById('fab');
+fab.onclick = () => {
+  const side = document.getElementById('sidebar');
+  side.classList.toggle('open');
+  document.getElementById('fab').style.opacity = side.classList.contains('open') ? '0' : '1';
+  document.getElementById('fab').style.pointerEvents = side.classList.contains('open') ? 'none' : 'auto';
+};
+
+/* 手机端：点地图空白处收起项目列表 */
+map.on('click', (e) => {
+  const t = e.originalEvent && e.originalEvent.target;
+  if(t && t.closest && t.closest('.marker-wrap')) return;
+  Object.keys(markers).forEach(k => markers[k].closeTooltip());
+  if(!isMobile()) return;
+  const side = document.getElementById('sidebar');
+  if(side.classList.contains('open')){
+    side.classList.remove('open');
+    fab.style.opacity = '1'; fab.style.pointerEvents = 'auto';
+  }
+});
+
+/* 大比例尺（缩放 13 级以上）回归真实坐标，避免错位影响判读 */
+function syncPositions(){
+  const spread = map.getZoom() <= 12;
+  PROJECTS.filter(inBeijing).forEach(p => {
+    const m = markers[p._id];
+    if(m) m.setLatLng(spread ? [p.mlat, p.mlng] : [p.glat, p.glng]);
+  });
+}
+map.on('zoomend', syncPositions);
+
+/* 屏幕尺寸变化：同步圆点大小，跨断点时收起浮层 */
+let rt;
+window.addEventListener('resize', () => {
+  clearTimeout(rt);
+  rt = setTimeout(() => {
+    PROJECTS.filter(inBeijing).forEach(p => {
+      const m = markers[p._id];
+      if(m){
+        m.setIcon(markerIcon(p));
+        m.setTooltipContent(tipHTML(p));
+      }
+    });
+    map.invalidateSize();
+    const side = document.getElementById('sidebar');
+    const f = document.getElementById('fab');
+    if(!isMobile()){
+      side.classList.remove('open');
+      f.style.opacity = '0'; f.style.pointerEvents = 'none';
+    }else{
+      f.style.opacity = side.classList.contains('open') ? '0' : '1';
+      f.style.pointerEvents = side.classList.contains('open') ? 'none' : 'auto';
+    }
+  }, 220);
+});
+
+/* ================= 数据加载 ================= */
+function setStatus(txt, bad){
+  const el = document.getElementById('srcLine');
+  if(!el) return;
+  el.textContent = txt;
+  el.style.color = bad ? '#fda4af' : '';
+}
+
+async function getJSON(url, ms){
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), ms || FETCH_TIMEOUT);
+  try{
+    const r = await fetch(url, {cache:'no-store', signal: ctl.signal});
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+/* Raw 和 jsDelivr 同时请求，谁先回来用谁（少等一次超时） */
+async function firstOk(urls, ms){
+  return await Promise.any(urls.map(u => getJSON(u, ms).then(j => ({j, u}))));
+}
+
+function msg(e){
+  if(!e) return '未知错误';
+  if(e.name === 'AbortError') return '超时';
+  if(e.errors) return e.errors.map(x => msg(x)).join(' / ');
+  return e.message || String(e);
+}
+
+function normalize(payload){
+  const arr = Array.isArray(payload) ? payload : (payload.projects || []);
+  return arr.map((p, i) => {
+    p._id = i;
+    p.signCount = Number(p.signCount || (p.signs || []).length || 0);
+    if(p.lat === '' || p.lat === null || p.lat === undefined){ p.lat = null; p.lng = null; }
+    if(p.lat !== null){ p.lat = Number(p.lat); p.lng = Number(p.lng); }
+    if(!p.signs) p.signs = [];
+    return p;
+  });
+}
+
+function accept(j, origin){
+  if(j && j.error) throw new Error(j.error);
+  const arr = Array.isArray(j) ? j : (j.projects || []);
+  if(!arr.length) throw new Error('返回 0 条');
+  try{ localStorage.setItem(CACHE_KEY, JSON.stringify(j)); }catch(e){}
+  return {payload:j, arr, origin};
+}
+
+/* 加载顺序：
+     1) ?data= 手动指定
+     2) 云端 data.json（Raw / jsDelivr 并行竞速）—— 永远是最新
+     3) Worker 只读接口 ?api=
+     4) 同目录 ./data.json、./projects.json（本地 HTTP 服务 / Pages）
+     5) 本机地图服务 127.0.0.1:8787（双击 html 时）
+     6) 内置快照 window.EMBEDDED
+     7) localStorage 缓存 */
+async function loadData(){
+  const tried = [];
+  const custom = PARAMS.get('data');
+
+  if(custom){
+    try{ return accept(await getJSON(custom), custom); }
+    catch(e){ tried.push(custom + ' → ' + msg(e)); }
+  }else{
+    const cu = cloudUrls();
+    if(cu.length){
+      try{
+        const hit = await firstOk(cu, CLOUD_TIMEOUT);
+        return accept(hit.j, hit.u);
+      }catch(e){
+        tried.push('云端 data.json → ' + msg(e));
+      }
+    }
+    if(REMOTE_API){
+      const u = REMOTE_API + '/projects.json' + (REMOTE_KEY ? ('?key=' + encodeURIComponent(REMOTE_KEY)) : '');
+      try{ return accept(await getJSON(u), u); }
+      catch(e){ tried.push(u + ' → ' + msg(e)); }
+    }
+    const locals = [DATA_URL, './projects.json'];
+    if(location.protocol === 'file:') locals.push(FALLBACK_URL);
+    for(const u of locals){
+      try{ return accept(await getJSON(u), u); }
+      catch(e){ tried.push(u + ' → ' + msg(e)); }
+    }
+  }
+  const emb = window.EMBEDDED;
+  if(emb){
+    const arr = Array.isArray(emb) ? emb : (emb.projects || []);
+    if(arr.length) return {payload:emb, arr, origin:'内置快照'};
+  }
+  try{
+    const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
+    const arr = Array.isArray(c) ? c : ((c && c.projects) || []);
+    if(arr.length) return {payload:c, arr, origin:'本地缓存'};
+  }catch(e){}
+  throw new Error(tried.join('；') || '没有可用数据源');
+}
+
+async function bootstrap(){
+  setStatus('正在读取最新数据…');
+  try{
+    const { payload, arr, origin } = await loadData();
+    PROJECTS = normalize(arr);
+    DATA_META = {
+      updated: (payload && payload.updated) || '',
+      source: (payload && payload.source) || '',
+      count: PROJECTS.length,
+      origin: origin
+    };
+    applyGeo(PROJECTS);
+    buildMarkers();
+    renderStats(); renderChips(); renderList();
+    document.getElementById('fabN').textContent = PROJECTS.length;
+    document.title = '北京备案项目地图 · ' + (DATA_META.updated ? DATA_META.updated.slice(0, 10) : '飞书同步');
+    const src = String(origin);
+    let tag = '飞书表格';
+    if(origin === '内置快照') tag = '内置快照';
+    else if(origin === '本地缓存') tag = '离线缓存';
+    else if(/raw\.githubusercontent/.test(src)) tag = '云端最新';
+    else if(/jsdelivr/.test(src)) tag = '云端CDN';
+    else if(origin === './data.json' || origin === './projects.json') tag = '本地数据';
+    else if(REMOTE_API && src.indexOf(REMOTE_API) === 0) tag = '飞书实时';
+    const noCloud = !REPO_PARAM && !(CLOUD && CLOUD.owner && CLOUD.repo);
+    setStatus(tag + ' ' + (DATA_META.updated ? DATA_META.updated.slice(5, 16) : '')
+      + ' · ' + PROJECTS.length + ' 条'
+      + (origin === '内置快照' || origin === '本地缓存' ? ' · 未联网或没起服务，用的是快照，点标题可重载'
+         : (noCloud ? ' · 未配置云端仓库（?repo=owner/repo 可直连 GitHub）' : '')));
+  }catch(e){
+    setStatus('数据加载失败：' + e.message + '（点此重试）', true);
+    renderStats(); renderChips(); renderList();
+  }
+  if(!isMobile()){
+    const f = document.getElementById('fab');
+    f.style.opacity = '0'; f.style.pointerEvents = 'none';
+  }
+  const autoOpen = PARAMS.get('open');
+  if(autoOpen !== null && PROJECTS.length){
+    const id = Number(autoOpen);
+    if(!isNaN(id) && PROJECTS[id]) select(id, true);
+  }
+  setTimeout(()=>map.invalidateSize(), 200);
+}
+
+document.getElementById('hintBtn').onclick = () => location.reload();
+bootstrap();
+</script>
+</body>
+</html>
