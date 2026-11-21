@@ -14,6 +14,8 @@ concurrency:
 
 permissions:
   contents: write     # 要把 data.json 提交回仓库，必须写权限
+  pages: write        # GitHub Pages 发布（免费，零额外账号）
+  id-token: write     # deploy-pages 需要
 
 env:
   TZ: Asia/Shanghai
@@ -101,3 +103,30 @@ jobs:
             index.html
             output/*.xlsx
           retention-days: 30
+
+      # 免费公开访问（零额外账号）：GitHub Pages
+      # 首次需要仓库 Settings → Pages → Source 选 "GitHub Actions"（部署脚本已自动设置）
+      - name: 准备 Pages 站点
+        uses: actions/configure-pages@v5
+        continue-on-error: true
+
+      - name: 打包 Pages 站点
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy-pages:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: 发布到 GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
