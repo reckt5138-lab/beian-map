@@ -9,7 +9,7 @@
     diagnose     输出诊断报告到 output/logs/diagnostic_report.txt
     selftest     跑一遍离线自检（不需要账号）
 
-旧入口（app/crawler.py、app/build_data_json.py、app/build_map_html.py）继续可用。
+旧入口（app/crawler.py、app/build_map_html.py）继续可用；离线转换请用 build-json 子命令。
 """
 
 import argparse
@@ -17,6 +17,11 @@ import json
 import os
 import subprocess
 import sys
+
+# 允许 `python app\main.py ...` 直接运行（此前只支持 `python -m app.main`）
+if __package__ in (None, ""):
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    __package__ = "app"
 
 from . import __version__
 from .core import ensure_dirs, load_config, setup_logging
