@@ -1,7 +1,8 @@
 name: 备案项目每日更新
 
-# 云端定时跑：抓青鸾数据 → 直接生成 data.json + 网页 → 免费发布，电脑关机也照跑。
-# 不再写飞书在线表格，数据只走「爬虫 → data.json → 网页」这条线。
+# 云端定时：抓数 → 校验 → 脱敏 → 构建网页 → 免费发布（GitHub Pages + 可选 Cloudflare Pages）
+# 安全底线：完整 158 列数据只存在 runner 临时目录，永远不提交、不上传 artifact；
+# 仓库与网页只拿到 app/security/sanitize.py 的白名单字段。
 
 on:
   schedule:
@@ -13,8 +14,8 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write     # 要把 data.json 提交回仓库，必须写权限
-  pages: write        # GitHub Pages 发布（免费，零额外账号）
+  contents: write     # 提交脱敏后的 data.json / index.html
+  pages: write        # GitHub Pages 发布
   id-token: write     # deploy-pages 需要
 
 env:
@@ -24,7 +25,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: 拉代码
         uses: actions/checkout@v4
@@ -36,31 +37,38 @@ jobs:
           cache: pip
 
       - name: 安装依赖
-        run: python -m pip install --upgrade pip && python -m pip install -r app/requirements.txt
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
 
-      - name: 抓数（不写飞书，直接出 Excel + data.json）
+      - name: 抓数（不写飞书，完整数据只留在本机临时目录）
         env:
           JUFA_USERNAME: ${{ secrets.JUFA_USERNAME }}
           JUFA_PASSWORD: ${{ secrets.JUFA_PASSWORD }}
-        run: python app/crawler.py --no-feishu --json-out data.json
+        run: python app/crawler.py --no-feishu --json-out output/data.full.json
 
-      - name: 生成网页（内置快照 + 云端地址）
-        # GITHUB_REPOSITORY 由 Actions 提供（owner/repo），构建脚本自动取用
-        run: python app/build_map_html.py --from-json data.json --out index.html
+      - name: 数据校验 + 脱敏 + 构建网页（不通过就整步失败，不发布）
+        run: python -m app.main publish --source output/data.full.json
 
-      - name: 校验产物
+      - name: 发布前安全检查（白名单自检 + 无凭证）
         run: |
           python - <<'PY'
-          import json
-          d = json.load(open("data.json", encoding="utf-8"))
-          assert d.get("count"), "data.json 里 0 条，停止发布"
-          assert d.get("projects"), "data.json 缺 projects"
-          assert d.get("rows"), "data.json 缺 rows"
-          print("data.json OK：%d 条 / %d 列 / %s" % (d["count"], d["columns"], d["updated"]))
+          import json, re, sys
+          sys.path.insert(0, ".")
+          from app.security import assert_safe
+          data = json.load(open("data.json", encoding="utf-8"))
+          ok, problems = assert_safe(data)
+          if not ok:
+              print("发布数据未通过白名单自检：")
+              [print("  -", p) for p in problems]
+              raise SystemExit(1)
+          html = open("index.html", encoding="utf-8").read()
+          for pat in (r"ghp_[A-Za-z0-9]{20,}", r"cli_[a-z0-9]{10,}", r'"password"\s*:\s*"[^"]{3,}"'):
+              if re.search(pat, html):
+                  print("网页疑似包含凭证", pat)
+                  raise SystemExit(1)
+          print("安全检查通过：%d 条 / %d 列（脱敏）" % (data["count"], data["columns"]))
           PY
-          test -s index.html || (echo "index.html 没生成" && exit 1)
 
-      - name: 提交数据与页面回仓库（走 API，没变化就不提交）
+      - name: 提交脱敏数据与页面（走 API，没变化就不提交）
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python app/publish_commit.py
@@ -71,41 +79,16 @@ jobs:
           REPO="${{ github.repository }}"
           for u in "https://purge.jsdelivr.net/gh/${REPO}@main/data.json" \
                    "https://purge.jsdelivr.net/gh/${REPO}@main/index.html" ; do
-            echo "purge: $u"
-            curl -fsS --max-time 20 "$u" > /dev/null && echo "  ok" || echo "  (忽略失败)"
+            curl -fsS --max-time 20 "$u" > /dev/null && echo "purge ok" || echo "purge skip"
           done
 
-      - name: 整理发布目录（只发网页和数据，不发代码和密钥）
+      - name: 整理发布目录（只放脱敏数据与网页）
         run: |
-          mkdir -p dist
-          cp index.html dist/index.html
-          cp data.json  dist/data.json
           ls -lh dist
+          test -s dist/index.html
+          test -s dist/data.json
 
-      # 免费公开访问：Cloudflare Pages（私有仓库也能用，链接固定）
-      # 需要 Secrets：CLOUDFLARE_API_TOKEN、CLOUDFLARE_ACCOUNT_ID、CLOUDFLARE_PROJECT_NAME
-      - name: 发布到 Cloudflare Pages
-        env:
-          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        if: env.CF_TOKEN != ''
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=${{ secrets.CLOUDFLARE_PROJECT_NAME }} --branch=main
-
-      - name: 保留本次产物（网页 / JSON / Excel 都能下载）
-        uses: actions/upload-artifact@v4
-        with:
-          name: 备案项目-${{ github.run_id }}
-          path: |
-            data.json
-            index.html
-            output/*.xlsx
-          retention-days: 30
-
-      # 免费公开访问（零额外账号）：GitHub Pages
-      # 首次需要仓库 Settings → Pages → Source 选 "GitHub Actions"（部署脚本已自动设置）
+      # 主站：GitHub Pages（零额外账号，免费）
       - name: 准备 Pages 站点
         uses: actions/configure-pages@v5
         continue-on-error: true
@@ -115,10 +98,34 @@ jobs:
         with:
           path: dist
 
+      # 备用站：Cloudflare Pages（配了三个 Secret 才发布，国内访问更稳）
+      - name: 发布到 Cloudflare Pages（备用站）
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        if: env.CF_TOKEN != ''
+        continue-on-error: true
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=${{ secrets.CLOUDFLARE_PROJECT_NAME }} --branch=main
+
+      # 失败留档：只保留脱敏数据与网页，绝不发布完整业务数据 / Excel
+      - name: 保留本次产物（脱敏）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 备案项目-脱敏-${{ github.run_id }}
+          path: |
+            data.json
+            index.html
+          retention-days: 14
+
   deploy-pages:
     needs: build
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write
@@ -129,4 +136,3 @@ jobs:
       - name: 发布到 GitHub Pages
         id: deploy
         uses: actions/deploy-pages@v4
-        continue-on-error: true
