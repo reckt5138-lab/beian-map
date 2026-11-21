@@ -1,8 +1,0 @@
-# 开发 / 部署机额外依赖
--r requirements.txt
-
-# 用于把 Secrets 加密后上传到 GitHub（只有本机部署时需要，云端不装）
-pynacl>=1.5,<2
-
-# 测试
-pytest>=7.4
