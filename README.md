@@ -65,7 +65,7 @@ python -m app.main crawl                     :: 真抓一次，写 output/raw + 
 python -m app.main build-json --source output/data.full.json
 python -m app.main build-map
 python -m app.main publish --source output/data.full.json   :: 脱敏 + 校验 + 构建 dist
-python -m app.main validate --file data.json
+python -m app.main validate --source data.json
 python -m app.main diagnose
 python -m app.main selftest
 python -m unittest discover -s tests -q      :: 35 tests
