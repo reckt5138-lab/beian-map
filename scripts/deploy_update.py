@@ -165,10 +165,10 @@ def main():
 
     git = find_git()
     if not git:
-        log("✗ 未找到 Git。请安装 Git for Windows，或改用 首次部署.bat 里的 API 方式。")
+        log("✗ 未找到 Git。请安装 Git for Windows，或改用 青鸾地图.bat（菜单 1） 里的 API 方式。")
         return 2
     if not os.path.isdir(os.path.join(BASE, ".git")):
-        log("✗ 当前目录不是 git 仓库。首次请双击「首次部署.bat」。")
+        log("✗ 当前目录不是 git 仓库。首次请双击「青鸾地图.bat（菜单 1）」。")
         return 2
 
     run([git, "fetch", "origin", "main"], check=False)
