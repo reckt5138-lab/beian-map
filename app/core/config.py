@@ -78,7 +78,7 @@ def load_config(require_file=False):
         raise ConfigError(
             "缺少配置文件 config/config.json。\n"
             "请复制 config/config.example.json 为 config/config.json 后填写。\n"
-            "（首次部署.bat 会自动做这一步）"
+            "（青鸾地图.bat（菜单 1） 会自动做这一步）"
         )
 
     # 环境变量覆盖（只覆盖有意义的几项）
@@ -122,7 +122,7 @@ def require_credentials():
             "缺少青鸾账号。请任选一种方式：\n"
             "  1) 在 config/credentials.json 里填 username / password（推荐，不进仓库）\n"
             "  2) 设置环境变量 JUFA_USERNAME / JUFA_PASSWORD\n"
-            "  3) 首次部署.bat 会引导你填写"
+            "  3) 青鸾地图.bat（菜单 1） 会引导你填写"
         )
     return cred
 
