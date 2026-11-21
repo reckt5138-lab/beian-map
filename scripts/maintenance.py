@@ -58,7 +58,7 @@ def collect():
     lines.append("一、运行环境")
     lines.append("  Python：%s（%s）" % (sys.version.split()[0], sys.executable))
     lines.append("  Git：%s" % (_version("git") or "未安装或不在 PATH（deploy 脚本可用 API 兜底推送）"))
-    lines.append("  GitHub CLI（gh）：%s" % (_version("gh") or "未安装（手动刷新数据.bat 会用 API 代替）"))
+    lines.append("  GitHub CLI（gh）：%s" % (_version("gh") or "未安装（青鸾地图.bat（菜单 3） 会用 API 代替）"))
     lines.append("  Node：%s" % (_version("node") or "未安装（仅前端调试需要）"))
     lines.append("")
 
@@ -109,7 +109,7 @@ def collect():
         except Exception as exc:
             lines.append("  ✗ git 检查失败：%s" % exc)
     else:
-        lines.append("  不是 git 仓库（首次部署.bat 会自动初始化）")
+        lines.append("  不是 git 仓库（青鸾地图.bat（菜单 1） 会自动初始化）")
     lines.append("")
 
     lines.append("五、目录权限 / 空间")
