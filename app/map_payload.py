@@ -31,7 +31,11 @@ def core(data):
 
 
 def save(payload, out_path):
-    """幂等写入：内容没变就不动文件。返回 (是否写入, 是否变化)。"""
+    """幂等 + 原子写入：内容没变就不动文件；变了先写临时文件再替换。
+
+    V2.1：普通 open(...,'w') 会在写入中途被打断时留下半截 JSON，
+    导致网页读到坏文件。改为原子替换（app/data/atomic.py）。
+    """
     from datetime import datetime, timezone
 
     old = None
@@ -45,7 +49,16 @@ def save(payload, out_path):
         return False, False
     payload["generated_at"] = datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
     os.makedirs(os.path.dirname(os.path.abspath(out_path)), exist_ok=True)
-    with open(out_path, "w", encoding="utf-8", newline="\n") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=1)
-        f.write("\n")
+
+    try:  # 优先走统一原子写；老脚本单独跑时也不能崩
+        import sys
+        _here = os.path.dirname(os.path.abspath(__file__))
+        if _here not in sys.path:
+            sys.path.insert(0, _here)
+        from data.atomic import atomic_write_json
+        atomic_write_json(out_path, payload)
+    except Exception:
+        with open(out_path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=1)
+            f.write("\n")
     return True, True
