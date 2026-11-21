@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## V2.1 Lite — 2026-11-21（精简稳定版）
+- 安全：config.json 删除 client_secret / feishu.app_id / app_secret；feishu.enabled=false；真实凭证仍只在本地 credentials.json
+- 精简：备份与 legacy 移出项目根；废弃模块（scheduler/web_server/encrypt_data/crawl_to_data/build_data_json/feishu worker）移出；依赖收敛为单一 requirements.txt
+- 入口：6 个 BAT 合并为「青鸾地图.bat」+ scripts/menu.py（菜单 1-6）
+- 文档：11 份合并为 4 份（使用说明/开发维护/部署说明/数据与安全）+ audit/安全与验收记录.md
+- 修复：build_map_html 解除飞书硬依赖；菜单 EOF 崩溃；诊断菜单改走 app.main diagnose
+- 测试：35 项仍全绿；编译/自检/构建/诊断实测通过
+- 未推送远程（按约束）：线上仍为上一版产物
+
 ## V2.1 — 2026-11-21（暂时最终版）
 
 **安全**
