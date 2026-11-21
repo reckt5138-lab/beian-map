@@ -1,6 +1,6 @@
 """首次部署：环境检查 → 虚拟环境 → 依赖 → 配置 → 账号 → 登录验证 → GitHub 部署。
 
-用法（一般由根目录「首次部署.bat」调用）：
+用法（一般由根目录「青鸾地图.bat（菜单 1）」调用）：
     python scripts/first_setup.py            # 完整流程
     python scripts/first_setup.py --check    # 只做环境检查，不安装、不部署
 
@@ -163,7 +163,7 @@ def run_deploy(py, git):
     log("  Token 生成：https://github.com/settings/tokens → Tokens (classic) → 勾 repo + workflow")
     token = input("  粘贴 Token：").strip()
     if not owner or not token:
-        log("· 未填完整，跳过云端部署。之后可双击「首次部署.bat」重跑，只补这一步。")
+        log("· 未填完整，跳过云端部署。之后可双击「青鸾地图.bat（菜单 1）」重跑，只补这一步。")
         return 0
     cmd = [py, os.path.join(BASE, "scripts", "deploy_github.py"),
            "--owner", owner, "--repo", repo, "--token", token]
@@ -203,7 +203,7 @@ def main():
 
     step(4, "青鸾账号")
     if not ensure_credentials():
-        log("\n账号没配好，先停在本地。修好后重新双击「首次部署.bat」。")
+        log("\n账号没配好，先停在本地。修好后重新双击「青鸾地图.bat（菜单 1）」。")
         return 4
 
     step(5, "验证登录")
@@ -215,10 +215,10 @@ def main():
     code = run_deploy(py, check_git())
     if code == 0:
         log("\n后续日常操作：")
-        log("  手动刷新数据 → 双击「手动刷新数据.bat」")
-        log("  本地看地图   → 双击「打开地图.bat」")
-        log("  改代码后上线 → 双击「一键更新部署.bat」")
-        log("  检查问题     → 双击「诊断项目.bat」")
+        log("  手动刷新数据 → 双击「青鸾地图.bat（菜单 3）」")
+        log("  本地看地图   → 双击「青鸾地图.bat（菜单 5）」")
+        log("  改代码后上线 → 双击「青鸾地图.bat（菜单 2）」")
+        log("  检查问题     → 双击「青鸾地图.bat（菜单 6）」")
     return code
 
 
