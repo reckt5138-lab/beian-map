@@ -1,5 +1,5 @@
 {
- "updated": "2026-11-21 19:45:39",
+ "updated": "2026-11-21 19:48:54",
  "source": "青鸾 https://c.jbufa.com（公开脱敏版）",
  "sheet": "备案项目",
  "columns": 13,
@@ -977,7 +977,7 @@
    "district": "丰台区"
   }
  ],
- "generated_at": "2026-11-21T19:45:39+08:00",
+ "generated_at": "2026-11-21T20:28:35+08:00",
  "public": true,
  "redacted": true,
  "field_policy": "config/public_fields.json"
