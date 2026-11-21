@@ -1,4 +1,4 @@
-r"""把二维表转成地图/网页用的 data.json 结构（爬虫和 build_data_json 共用）。
+r"""把二维表转成地图/网页用的 data.json 结构（爬虫与 app.main 共用）。
 
 只依赖 sheet_to_projects，不 import crawler，避免循环引用。
 """
