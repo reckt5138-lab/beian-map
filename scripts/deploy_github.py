@@ -397,7 +397,7 @@ def main():
     log("仓库：https://github.com/%s/%s" % (owner, repo))
     log("Actions：https://github.com/%s/%s/actions" % (owner, repo))
     log("数据：https://raw.githubusercontent.com/%s/%s/main/data.json" % (owner, repo))
-    log("本地：双击 打开地图.bat（数据自动取云端）")
+    log("本地：双击 青鸾地图.bat（菜单 5）（数据自动取云端）")
     if cf:
         log("网页（手机/电脑随时访问）：https://%s.pages.dev/" % cf["project"])
     else:
