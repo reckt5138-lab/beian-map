@@ -56,8 +56,8 @@
     "snapshot": true
   },
   "publish": {
-    "github_owner": "",
-    "github_repo": "",
+    "github_owner": "reckt5138-lab",
+    "github_repo": "beian-map",
     "branch": "main"
   },
   "feishu": {
