@@ -870,6 +870,20 @@ async function firstOk(urls, ms){
   return await Promise.any(urls.map(u => getJSON(u, ms).then(j => ({j, u}))));
 }
 
+/* 同时请求所有云端地址，等齐（最多 ms 秒），取数据更新的那份。
+   CDN 有缓存，先回来的不一定最新，所以按 updated / generated_at 比一比。 */
+async function bestOf(urls, ms){
+  const results = await Promise.all(urls.map(async u => {
+    try{ return {j: await getJSON(u, ms), u}; }
+    catch(e){ return null; }
+  }));
+  const ok = results.filter(Boolean);
+  if(!ok.length) throw new Error('云端地址全部失败');
+  const stamp = r => String((r.j && (r.j.updated || r.j.generated_at)) || '');
+  ok.sort((a, b) => (stamp(a) < stamp(b) ? 1 : (stamp(a) > stamp(b) ? -1 : 0)));
+  return ok[0];
+}
+
 function msg(e){
   if(!e) return '未知错误';
   if(e.name === 'AbortError') return '超时';
@@ -916,7 +930,7 @@ async function loadData(){
     const cu = cloudUrls();
     if(cu.length){
       try{
-        const hit = await firstOk(cu, CLOUD_TIMEOUT);
+        const hit = await bestOf(cu, CLOUD_TIMEOUT);
         return accept(hit.j, hit.u);
       }catch(e){
         tried.push('云端 data.json → ' + msg(e));
