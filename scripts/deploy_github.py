@@ -172,11 +172,66 @@ def step_push(owner, repo, token, git):
 
     r = run([git, "push", "-u", "origin", "main"], check=False)
     if r.returncode != 0:
-        log("· 推送被拒（远端已有提交），尝试 rebase 后再推…")
-        run([git, "pull", "--rebase", "--autostash", "origin", "main"], check=False)
-        run([git, "push", "-u", "origin", "main"])
+        log("· 远端已有提交（或网络不通），改用 GitHub API 逐个推送…")
+        push_files_via_api(owner, repo, token)
+    else:
+        log("✓ 代码已推送：%s" % plain)
     run([git, "remote", "set-url", "origin", plain])   # 不把 token 留在 config 里
-    log("✓ 代码已推送：%s" % plain)
+
+
+# 云端会自己生成的文件不通过 API 覆盖（否则会把当天数据/页面盖成旧版）
+SKIP_FOR_API = {"data.json", "index.html", "备案项目地图.html", "projects.json",
+                "config/credentials.json", "config/deploy.json"}
+
+
+def push_files_via_api(owner, repo, token, branch="main"):
+    """远端已有提交时，用 Contents API 逐文件推送，绕开 git 历史分叉与网络问题。"""
+    import base64
+    import json as _json
+    try:
+        import requests
+    except ImportError:
+        log("✗ 缺 requests，无法 API 推送：python -m pip install requests")
+        return False
+
+    git = find_git()
+    files = [f for f in run([git, "ls-files"], check=False).stdout.splitlines() if f.strip()]
+    api = "https://api.github.com/repos/%s/%s/contents/" % (owner, repo)
+    s = requests.Session()
+    s.headers.update({"Authorization": "token " + token,
+                      "Accept": "application/vnd.github+json",
+                      "User-Agent": "beian-map-deploy"})
+    ok = failed = skipped = 0
+    for f in files:
+        if f in SKIP_FOR_API:
+            skipped += 1
+            continue
+        p = os.path.join(BASE, f)
+        if not os.path.isfile(p):
+            continue
+        with open(p, "rb") as fh:
+            content = fh.read()
+        try:
+            r = s.get(api + f, params={"ref": branch}, timeout=30)
+            sha = r.json().get("sha") if r.status_code == 200 else None
+            body = {"message": "deploy: %s" % f, "branch": branch,
+                    "content": base64.b64encode(content).decode()}
+            if sha:
+                body["sha"] = sha
+            r = s.put(api + f, data=_json.dumps(body), timeout=60)
+        except Exception as exc:
+            log("  ✗ %s 请求失败：%s" % (f, exc))
+            failed += 1
+            continue
+        if r.status_code in (200, 201):
+            ok += 1
+        else:
+            log("  ✗ %s %s %s" % (f, r.status_code, r.text[:80]))
+            failed += 1
+
+    log("✓ API 推送：成功 %d 个，跳过 %d 个（data.json / index.html 由云端生成），失败 %d 个"
+        % (ok, skipped, failed))
+    return failed == 0
 
 
 def step_secrets(owner, repo, token, cf=None):
@@ -236,9 +291,14 @@ def step_publish(owner, repo, token, git):
 
     run([git, "add", "config/config.json", "config/config.example.json", "index.html"], check=False)
     if run([git, "status", "--porcelain"]).stdout.strip():
-        run([git, "commit", "-m", "config: index.html 指向云端 data.json"])
-        run([git, "push", "origin", "main"])
-        log("✓ 已推送配置更新")
+        run([git, "commit", "-m", "config: index.html 指向云端 data.json"], check=False)
+        r = run([git, "push", "origin", "main"], check=False)
+        if r.returncode == 0:
+            log("✓ 已推送配置更新")
+        else:
+            log("· git 推送不通，改用 API 推 config（index.html 由云端重建，不用推）")
+            push_files_via_api(owner, repo, token)
+            log("✓ 配置已通过 API 更新")
 
 
 def step_actions(owner, repo, token, trigger=True):
