@@ -22,8 +22,9 @@
 
 | 方式 | 地址 | 说明 |
 | --- | --- | --- |
+| 手机 / 任意设备（推荐，零额外账号） | **<https://reckt5138-lab.github.io/beian-map/>** | GitHub Pages，Actions 每次跑完自动发布，免费无限流量 |
+| 可选加速 | Cloudflare Pages `https://项目名.pages.dev/` | 配了三项 Secret 就自动一起发；国内访问更稳 |
 | 电脑本地 | 双击 `打开地图.bat` | 起本地 HTTP 服务并打开 `index.html`；先读云端 `data.json`，拿不到退回内置快照 |
-| 手机 / 任意设备 | Cloudflare Pages 免费链接 `https://项目名.pages.dev/` | Actions 每次跑完自动发布；这才是真正的"随时可访问" |
 
 页面只读：点开任一项目能看到全部 158 列非空字段。
 
@@ -53,11 +54,12 @@ python scripts\deploy_github.py --owner 你的用户名 --repo 仓库名 --token
 GitHub Actions（每天 02:10，云端，关机照跑）
    └─ crawler.py --no-feishu --json-out data.json   抓数 → Excel + data.json
    └─ build_map_html.py --from-json data.json       用当天数据重建 index.html
-   └─ git commit data.json（内容没变就不提交）→ push
-   └─ Cloudflare Pages 发布 index.html + data.json   → https://项目名.pages.dev/
+   └─ publish_commit.py（Contents API）             提交 data.json / index.html（没变化就跳过）
+   └─ GitHub Pages 发布 dist/                        → https://reckt5138-lab.github.io/beian-map/
+   └─ Cloudflare Pages（可选，配了 CF Secret 才发）
    └─ 上传 artifact（output\*.xlsx）                  → Actions 页面可下载 Excel
         ↓
-你打开网页 → 页面读 data.json（Pages 同源，或 Raw / jsDelivr 竞速）→ 显示当天数据
+你打开网页 → 页面同时读 Raw 与 jsDelivr，按 updated 取较新的一份 → 显示当天数据
 ```
 
 ## 目录
