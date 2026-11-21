@@ -17,11 +17,13 @@ import json
 import os
 import sys
 
-import sheet_to_projects as src
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CONFIG_DIR = os.path.join(BASE_DIR, "config")
 
-HTML_PATH = os.path.join(src.BASE_DIR, "备案项目地图.html")
-TEMPLATE_PATH = os.path.join(src.SCRIPT_DIR, "map_template.html")
-CONFIG_PATH = os.path.join(src.CONFIG_DIR, "config.json")
+HTML_PATH = os.path.join(BASE_DIR, "备案项目地图.html")
+TEMPLATE_PATH = os.path.join(SCRIPT_DIR, "map_template.html")
+CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
 START = "/*__EMBEDDED_START__*/"
 END = "/*__EMBEDDED_END__*/"
 CLOUD_START = "/*__CLOUD_START__*/"
@@ -37,7 +39,7 @@ def rb(path):
 def read_data_key():
     """解密密钥：config\\data_key.txt 优先，其次 config.json 的 publish.data_key。"""
     try:
-        with open(os.path.join(src.CONFIG_DIR, "data_key.txt"), "r", encoding="utf-8") as f:
+        with open(os.path.join(CONFIG_DIR, "data_key.txt"), "r", encoding="utf-8") as f:
             return f.read().strip()
     except FileNotFoundError:
         pass
@@ -63,7 +65,7 @@ def load_publish(data_file=""):
     if full and "/" in full:
         owner, repo = full.split("/", 1)
     if not data_file:
-        data_file = "data.enc" if os.path.exists(os.path.join(src.BASE_DIR, "data.enc")) else "data.json"
+        data_file = "data.enc" if os.path.exists(os.path.join(BASE_DIR, "data.enc")) else "data.json"
     key = read_data_key()
     if not owner or not repo:
         # 没配仓库地址也要带上密钥和文件名：本地 HTTP 打不开时至少能解密同目录密文
@@ -82,7 +84,12 @@ def replace_block(html, start, end, block, what):
 def build(src_path=TEMPLATE_PATH, out_path=None, payload=None, embed=True):
     """模板（无数据）→ 取数 → 输出 html。payload 传入时用它代替飞书表。"""
     out_path = out_path or HTML_PATH
-    payload = payload or src.build_payload()
+    if payload is None:
+        try:
+            import sheet_to_projects as _src          # 仅历史飞书取数路径需要
+        except ImportError:
+            raise RuntimeError("未传 payload，且飞书取数模块已移除：请用 --from-json 指定数据文件")
+        payload = _src.build_payload()
     html = rb(src_path)
 
     if embed:
