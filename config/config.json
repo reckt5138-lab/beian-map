@@ -4,7 +4,6 @@
     "username": "",
     "password": "",
     "client_id": "web",
-    "client_secret": "111111",
     "token": "",
     "cookie": ""
   },
@@ -62,19 +61,19 @@
   },
   "feishu": {
     "enabled": false,
-    "auth_mode": "app",
-    "app_id": "cli_ab8ae3e157f9dc01",
-    "app_secret": "",
+    "auth_mode": "lark_cli",
     "api_base": "https://open.feishu.cn",
     "lark_cli_profile": "",
-    "spreadsheet_token": "E1AcsZQ2EhT6Vgt9GiHcxmp6ncc",
-    "url": "https://jcntthw4tzwh.feishu.cn/sheets/E1AcsZQ2EhT6Vgt9GiHcxmp6ncc",
+    "spreadsheet_token": "",
+    "url": "",
     "sheet_name": "备案项目",
-    "sheet_id": "d154b6",
+    "sheet_id": "",
     "name": "备案项目每日导出",
     "folder_token": "",
-    "lark_cli": "C:\\Users\\Administrator\\AppData\\Local\\Doubao\\User Data\\Default\\sandbox_envs_dir\\envs\\5b0c0b86-7343-4ecc-ae73-719c8de91cd7\\override_dlcs\\lark-cli.exe",
-    "last_rows": 19,
-    "last_cols": 158
+    "lark_cli": "",
+    "last_rows": 0,
+    "last_cols": 0,
+    "app_id": "",
+    "app_secret": ""
   }
 }
