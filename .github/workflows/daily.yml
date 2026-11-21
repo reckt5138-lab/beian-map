@@ -58,19 +58,10 @@ jobs:
           PY
           test -s index.html || (echo "index.html 没生成" && exit 1)
 
-      - name: 提交数据与页面回仓库（没变化就不提交）
-        run: |
-          set -e
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data.json index.html
-          if git diff --staged --quiet; then
-            echo "没有变化，跳过提交"
-          else
-            git commit -m "data: update $(date -u +%F' '%H:%M)"
-            git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
-            git push
-          fi
+      - name: 提交数据与页面回仓库（走 API，没变化就不提交）
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python app/publish_commit.py
 
       - name: 刷新 jsDelivr 缓存（可选，失败不影响）
         continue-on-error: true
