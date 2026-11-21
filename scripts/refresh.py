@@ -67,7 +67,7 @@ def main():
     wait = "--no-wait" not in sys.argv
     conf = load_conf()
     if not conf["owner"] or not conf["repo"]:
-        print("✗ 还没配置仓库。请先双击「首次部署.bat」，或在 config/deploy.json 填 owner / repo。")
+        print("✗ 还没配置仓库。请先双击「青鸾地图.bat（菜单 1）」，或在 config/deploy.json 填 owner / repo。")
         return 2
 
     print("=" * 60)
