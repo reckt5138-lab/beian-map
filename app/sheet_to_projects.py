@@ -3,7 +3,8 @@ r"""飞书在线表格 → 地图用的项目 JSON。
 表格是「备案项目每日导出」（158 列，与网页导出一致）。本模块用自建应用身份
 读取整张表，按表头名把 158 列还原成地图需要的字段，再补上坐标。
 
-被 web_server.py 和 scheduler.py 复用；也可单独跑：
+矩阵解析与坐标合并核心（`parse()` / `with_coords()`），被 map_payload 与 crawler 复用。
+飞书取数部分为历史能力，当前主流程不调用（飞书链路已下线）；如需单独跑：
     python app\sheet_to_projects.py --out data\projects.json
 """
 
