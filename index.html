@@ -395,6 +395,12 @@
      7) http://127.0.0.1:8787/     双击 html 打开时的本机地图服务
      8) 内置快照 window.EMBEDDED   构建时写进 html 的最近一份数据
      9) localStorage 缓存          上一次成功读到的数据 */
+
+/*__CLOUD_START__*/
+/* 云端地址：来自 config\config.json 的 publish 段（或 GITHUB_REPOSITORY 环境变量）。页面优先读 GitHub 上的 data.json，拿不到再用内置快照。 */
+window.CLOUD = {"owner":"reckt5138-lab","repo":"beian-map","branch":"main","file":"data.json","key":""};
+/*__CLOUD_END__*/
+
 const PARAMS = new URLSearchParams(location.search);
 const DATA_URL = PARAMS.get('data') || './data.json';
 /* 云端只读接口（Cloudflare Worker 等）：?api=https://xxx.workers.dev&key=xxx
@@ -429,11 +435,6 @@ function cloudUrls(){
 
 let PROJECTS = [];
 let DATA_META = { updated: '', source: '', count: 0, origin: '' };
-
-/*__CLOUD_START__*/
-/* 云端地址：来自 config\config.json 的 publish 段（或 GITHUB_REPOSITORY 环境变量）。页面优先读 GitHub 上的 data.json，拿不到再用内置快照。 */
-window.CLOUD = {"owner":"reckt5138-lab","repo":"beian-map","branch":"main","file":"data.json","key":""};
-/*__CLOUD_END__*/
 
 /*__EMBEDDED_START__*/
 /* 内置快照：由 app\build_map_html.py 把最近一次的数据直接写进本文件，没联网 / 打不开云端时也能看到内容。运行 build 脚本即可刷新。 */
