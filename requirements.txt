@@ -1,0 +1,4 @@
+# 唯一依赖清单（云端 Actions 与本机都用这一份）
+requests>=2.28,<3        # 接口请求 / GitHub Contents API
+pynacl>=1.5,<2           # scripts/deploy_github.py 加密上传 Secrets（云端未用到，装了也无害）
+certifi>=2023.7.22       # 根证书：Windows 上 Python 默认没有 CA 包，urllib 会报 CERTIFICATE_VERIFY_FAILED
