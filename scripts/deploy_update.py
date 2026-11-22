@@ -61,6 +61,15 @@ def load_deploy_conf():
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or conf.get("token") or ""
     owner = conf.get("owner") or os.environ.get("GITHUB_OWNER") or ""
     repo = conf.get("repo") or os.environ.get("GITHUB_REPO") or ""
+    # 没配 deploy.json 时，退回用 config.json 里已经记录过的发布目标
+    if not owner or not repo:
+        try:
+            with open(os.path.join(CONFIG_DIR, "config.json"), "r", encoding="utf-8-sig") as f:
+                pub = (json.load(f) or {}).get("publish") or {}
+            owner = owner or pub.get("github_owner") or ""
+            repo = repo or pub.get("github_repo") or ""
+        except Exception:
+            pass
     return {"owner": owner, "repo": repo, "token": token}
 
 
