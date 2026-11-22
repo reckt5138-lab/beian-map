@@ -995,6 +995,22 @@ def save_raw(out_dir, run_date, rows_data):
     return path
 
 
+def build_matrix(columns, rows):
+    """把列定义与数据组装成矩阵：rows[0] 是表头，其余每行是一条项目的值。
+
+    columns 里每项是 {"prop": 接口字段名, "label": 中文表头}。
+    """
+    header = [c.get("label") or c.get("prop") for c in columns]
+    body = []
+    for row in rows:
+        line = []
+        for c in columns:
+            v = row.get(c.get("prop"))
+            line.append("" if v is None else v)
+        body.append(line)
+    return [header] + body
+
+
 def run(args):
     cfg = load_config()
     out_dir = resolve_output_dir(cfg)
