@@ -25,9 +25,23 @@ class TestSanitize(unittest.TestCase):
             for key in ("owner", "dept", "customer", "contact", "customerAddr",
                         "amount", "discount", "desc", "addr"):
                 self.assertEqual(proj.get(key), "", "字段 %s 没有被清空" % key)
-            self.assertEqual(proj.get("signs"), [])
-            self.assertEqual(proj.get("signCount"), "")
 
+    def test_sign_fields_are_kept(self):
+        payload = load_fixture()
+        payload["projects"][0]["signCount"] = "5"
+        payload["projects"][0]["lastSign"] = "2026-11-17"
+        payload["projects"][0]["lastRecord"] = "项目大前期，还未开始挖槽"
+        payload["projects"][0]["signs"] = [
+            {"date": "2026-11-17", "note": "项目大前期，还未开始挖槽"}
+        ]
+        public = sanitize(payload)
+        proj = public["projects"][0]
+        self.assertEqual(proj["signCount"], "5")
+        self.assertEqual(proj["lastSign"], "2026-11-17")
+        self.assertEqual(proj["lastRecord"], "项目大前期，还未开始挖槽")
+        self.assertEqual(len(proj["signs"]), 1)
+        ok, problems = assert_safe(public)
+        self.assertTrue(ok, problems)
     def test_public_fields_are_kept(self):
         public = sanitize(load_fixture())
         proj = public["projects"][0]
@@ -53,11 +67,12 @@ class TestSanitize(unittest.TestCase):
         self.assertFalse(ok)
         self.assertIn("customer", " ".join(problems))
 
-    def test_assert_safe_detects_signs(self):
+    def test_assert_safe_detects_signs_extra_key(self):
         public = sanitize(load_fixture())
-        public["projects"][0]["signs"] = [{"note": "签到"}]
+        public["projects"][0]["signs"] = [{"note": "签到", "owner": "张三"}]
         ok, problems = assert_safe(public)
         self.assertFalse(ok)
+        self.assertIn("signs", " ".join(problems))
 
     def test_assert_safe_detects_extra_column(self):
         public = sanitize(load_fixture())
