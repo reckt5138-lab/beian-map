@@ -1,5 +1,5 @@
 {
-  "version": "2.1",
+  "version": "3.1",
   "description": "公开数据白名单。只有这里列出的字段会进入 data.json / 网页 / 仓库；其余一律当作敏感字段清空。",
   "projects_keep": [
     "name",
@@ -16,7 +16,11 @@
     "lat",
     "lng",
     "geo",
-    "district"
+    "district",
+    "signCount",
+    "lastSign",
+    "lastRecord",
+    "signs"
   ],
   "projects_blank": [
     "addr",
@@ -32,12 +36,8 @@
     "discount",
     "desc",
     "evac",
-    "lastSign",
-    "lastRecord",
-    "signCount",
     "quoteTimes",
-    "quoted",
-    "signs"
+    "quoted"
   ],
   "columns_keep": [
     "项目名称",
@@ -52,11 +52,15 @@
     "失效时间",
     "创建时间",
     "是否海外项目",
-    "是否改造项目"
+    "是否改造项目",
+    "项目签到次数",
+    "最后一次签到时间",
+    "未跟进天数"
   ],
   "derive_district": true,
   "notes": [
-    "客户姓名 / 联系人 / 电话 / 客户地址 / 合同金额 / 报价 / 跟进与签到明细 / 内部备注 / 业务员与部门 一律不公开。",
+    "客户姓名 / 联系人 / 电话 / 客户地址 / 合同金额 / 报价 / 内部备注 / 业务员与部门 一律不公开。",
+    "跟进记录（签到时间 + 记录正文）按用户要求公开，只放 date / note 两个键。",
     "坐标精度由 geo 字段标注，估算坐标不得当作准确位置展示。"
   ]
 }
