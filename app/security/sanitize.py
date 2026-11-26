@@ -12,24 +12,27 @@ import os
 import re
 
 from ..core.paths import CONFIG_DIR
+from ..project_type import ensure_kind, KIND_LABELS
 
 DEFAULT_FIELDS = {
     "projects_keep": [
         "name", "classify", "ptype", "build", "stage", "product", "source",
         "vertical", "filing", "expire", "created", "lat", "lng", "geo", "district",
-        # 跟进记录（按用户要求公开：签到时间 + 记录正文）
-        "signCount", "lastSign", "lastRecord", "signs",
+        "pkind", "pkindLabel",
     ],
     "projects_blank": [
         "addr", "owner", "dept", "area", "customer", "contact", "customerAddr",
         "customerType", "customerQual", "amount", "discount", "desc", "evac",
-        "quoteTimes", "quoted",
+        "lastSign", "lastRecord", "signCount", "quoteTimes", "quoted", "signs",
+        # 合同与财务字段一律不进入公开数据
+        "contractNo", "contractNoText", "contractStatus", "contractAmount",
+        "receivedAmount", "unreceivedAmount", "collectionRate", "products",
+        "deliveries", "shippedAmount", "projectCode", "status", "dealTime",
     ],
     "columns_keep": [
         "项目名称", "产品类型", "审批类型", "项目分类", "项目类型", "建设类型",
         "项目进度", "项目来源", "备案时间", "失效时间", "创建时间",
         "是否海外项目", "是否改造项目",
-        "项目签到次数", "最后一次签到时间", "未跟进天数",
     ],
     "derive_district": True,
 }
@@ -85,7 +88,7 @@ def sanitize_project(proj, fields):
             else:                       # 非字典结构：直接丢弃，不放行任何全字段数据
                 out[key] = {}
         elif key == "signs":
-            out[key] = value if "signs" in keep else []   # 白名单放行时下发签到明细
+            out[key] = []           # 签到记录含个人信息，整体不下发
         elif key in keep:
             out[key] = value
         else:
@@ -93,6 +96,11 @@ def sanitize_project(proj, fields):
             out[key] = [] if isinstance(value, list) else ""
     if fields.get("derive_district", True) and "district" not in out:
         out["district"] = district_of(proj.get("addr"))
+    # 分类枚举是派生字段：旧数据没有 pkind 时按真实类型字段补算，不能凭空猜测
+    kind = ensure_kind({"pkind": proj.get("pkind"), "classify": proj.get("classify"),
+                        "status": proj.get("status")})
+    out["pkind"] = kind
+    out["pkindLabel"] = KIND_LABELS[kind]
     return out
 
 
@@ -138,18 +146,13 @@ def assert_safe(payload, fields=None):
     """发布前自检：确保敏感字段没有泄露。返回 (ok, 问题列表)。"""
     fields = fields or load_fields()
     problems = []
-    allowed = set(fields["projects_keep"]) | {"fields", "_id"}
+    allowed = set(fields["projects_keep"]) | {"fields", "signs", "_id"}
     for i, proj in enumerate((payload.get("projects") or [])[:5]):
         for key, value in proj.items():
             if key not in allowed and value not in ("", [], None, 0):
                 problems.append("projects[%d].%s 未在白名单内却有值" % (i, key))
-        for s_item in (proj.get("signs") or []):
-            if not isinstance(s_item, dict):
-                problems.append("projects[%d].signs 结构异常" % i)
-                continue
-            for k in s_item:
-                if k not in ("date", "note"):
-                    problems.append("projects[%d].signs 含非白名单键 %s" % (i, k))
+        if proj.get("signs"):
+            problems.append("projects[%d].signs 非空（签到记录不应公开）" % i)
         for name, value in (proj.get("fields") or {}).items():
             if name not in fields["columns_keep"] and value:
                 problems.append("projects[%d].fields.%s 未在白名单内却有值" % (i, name))

@@ -19,6 +19,45 @@ MATRIX = [
 ]
 
 
+class TestCrawlStatusFilter(unittest.TestCase):
+    """接口 projectStatus 实际取值是「成交」，Tab 文案是「成交项目」，必须做别名展开。"""
+
+    def setUp(self):
+        from app import crawler
+        self.crawler = crawler
+
+    def test_deal_alias_expanded(self):
+        values = self.crawler.expand_status_filter(["备案项目", "成交项目"])
+        self.assertIn("备案项目", values)
+        self.assertIn("成交", values)
+
+    def test_filter_keeps_filing_and_deal(self):
+        rows = [{"projectStatus": "备案项目"}, {"projectStatus": "成交"},
+                {"projectStatus": "失效"}, {"projectStatus": "丢失"}, {"projectStatus": "非备案人报价项目"}]
+        kept, dropped = self.crawler.filter_rows_by_status(rows, ["备案项目", "成交项目"])
+        self.assertEqual([r["projectStatus"] for r in kept], ["备案项目", "成交"])
+        self.assertEqual(sum(dropped.values()), 3)
+
+    def test_empty_filter_keeps_all(self):
+        rows = [{"projectStatus": "失效"}]
+        kept, dropped = self.crawler.filter_rows_by_status(rows, [])
+        self.assertEqual(len(kept), 1)
+        self.assertEqual(dropped, {})
+
+
+class TestMatrixToKind(unittest.TestCase):
+    def test_status_column_sets_project_kind(self):
+        from app import matrix_parse
+        matrix = [
+            ["项目名称", "项目状态"],
+            ["备案甲", "备案项目"],
+            ["成交乙", "成交"],
+            ["未知丙", ""],
+        ]
+        projects, _ = matrix_parse.parse(matrix)
+        self.assertEqual([p["pkind"] for p in projects], ["filing", "deal", "unknown"])
+
+
 class TestCrawlerParse(unittest.TestCase):
     def test_matrix_to_payload_keeps_fields(self):
         import map_payload

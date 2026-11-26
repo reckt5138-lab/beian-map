@@ -10,6 +10,11 @@
 import json
 import os
 
+try:
+    from . import project_type
+except ImportError:  # 直接以 app/ 为工作目录运行时
+    import project_type
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 COORDS_PATH = os.path.join(DATA_DIR, "coords.json")
@@ -46,6 +51,12 @@ FIELD_MAP = {
     "最后一次签到记录": "lastRecord",
     "项目工期": "duration",
     "垂直/非垂直": "vertical",
+    # 以下字段是项目分类与合同关联所需，来自青鸾导出列，不参与公开金额展示
+    "项目编号": "projectCode",
+    "项目状态": "status",
+    "合同编号": "contractNo",
+    "合同情况": "contractStatus",
+    "成交时间": "dealTime",
 }
 
 # 北京各区中心点，作为没有坐标的项目兜底（视觉上落在区内）
@@ -155,6 +166,7 @@ def parse(matrix):
             p[k] = norm_date(p.get(k))
         if not p.get("name"):
             continue
+        project_type.annotate([p])
         out.append(p)
     return out, len(headers)
 

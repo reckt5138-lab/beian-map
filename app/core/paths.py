@@ -12,6 +12,8 @@ LOG_DIR = os.path.join(OUTPUT_DIR, "logs")
 BACKUP_DIR = os.path.join(OUTPUT_DIR, "backups")
 DIST_DIR = os.path.join(BASE_DIR, "dist")
 DOCS_DIR = os.path.join(BASE_DIR, "docs")
+PRIVATE_DIR = os.path.join(BASE_DIR, "private")          # 合同财务等受控数据，绝不发布
+CONTRACTS_JSON = os.path.join(PRIVATE_DIR, "contracts.json")
 
 CONFIG_JSON = os.path.join(CONFIG_DIR, "config.json")
 CONFIG_EXAMPLE = os.path.join(CONFIG_DIR, "config.example.json")

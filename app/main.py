@@ -13,6 +13,7 @@
 """
 
 import argparse
+import glob
 import json
 import os
 import subprocess
@@ -24,10 +25,12 @@ if __package__ in (None, ""):
     __package__ = "app"
 
 from . import __version__
+from .contracts import build_project_contracts, extract_contract_nos, save as save_contracts
 from .core import ensure_dirs, load_config, setup_logging
 from .core.exceptions import JbufaError
-from .core.paths import BASE_DIR, DATA_JSON, DIST_DIR, FULL_JSON, INDEX_HTML
+from .core.paths import BASE_DIR, CONTRACTS_JSON, DATA_JSON, DIST_DIR, FULL_JSON, INDEX_HTML
 from .data import export_public, load_previous, validate_payload
+from .finance import assert_no_finance
 from .map import build_page, copy_to_dist
 from .security import assert_safe, sanitize
 
@@ -72,6 +75,10 @@ def cmd_build_json(args):
     if not ok:
         print("✗ 安全检查未通过：\n  - " + "\n  - ".join(problems))
         return 5
+    ok_fin, fin_problems = assert_no_finance(public)
+    if not ok_fin:
+        print("✗ 公开数据含财务字段：\n  - " + "\n  - ".join(fin_problems))
+        return 5
     print("✓ 已生成公开数据 %s（%d 条 / %d 列）" % (args.out or DATA_JSON, public["count"], public["columns"]))
     return 0
 
@@ -92,6 +99,10 @@ def cmd_publish(args):
     if not ok:
         print("✗ 发布前自检失败：\n  - " + "\n  - ".join(problems))
         return 5
+    ok_fin, fin_problems = assert_no_finance(public)
+    if not ok_fin:
+        print("✗ 发布数据含财务字段，已阻止发布：\n  - " + "\n  - ".join(fin_problems))
+        return 5
 
     ok, msg = build_page(from_json=args.out or "data.json", out=INDEX_HTML)
     print(msg)
@@ -100,6 +111,89 @@ def cmd_publish(args):
         return 1
     copy_to_dist(INDEX_HTML, args.out or DATA_JSON, DIST_DIR)
     print("✓ 发布目录已生成：%s（只含 index.html 与脱敏 data.json）" % DIST_DIR)
+    return 0
+
+
+def cmd_build_contracts(args):
+    """生成受控合同数据：项目合同编号 + 财务导出 → private/contracts.json。
+
+    绝不写进 dist。没有财务导出时只输出“数据源未接入”的占位结构，金额一律为空。
+    """
+    src = args.source or FULL_JSON
+    if not os.path.exists(src):
+        print("找不到完整数据：%s\n先运行 python -m app.main crawl" % src)
+        return 1
+    with open(src, "r", encoding="utf-8") as f:
+        full = json.load(f)
+    finance_source = None
+    if args.finance:
+        from .contracts import load_finance_source
+        try:
+            finance_source = load_finance_source(args.finance)
+        except (OSError, ValueError) as exc:
+            print("✗ 财务数据无法读取：%s" % exc)
+            return 1
+    else:
+        print("· 未提供 --finance，合同金额/回款/产品/发货均留空（不生成任何演示值）")
+
+    payload = build_project_contracts(full, finance_source)
+    out = args.out or CONTRACTS_JSON
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    save_contracts(payload, out)
+
+    counts = {}
+    contract_count = 0
+    for item in payload["projects"].values():
+        counts[item["status"]] = counts.get(item["status"], 0) + 1
+        contract_count += len(item["contracts"])
+    print("✓ 已生成受控合同数据：%s" % out)
+    print("  项目 %d 个 / 合同 %d 份 / 状态分布：%s" % (len(payload["projects"]), contract_count, counts))
+    print("  提醒：该文件含财务信息，禁止复制到 dist、Pages 或公开仓库。")
+    return 0
+
+
+def cmd_crawl_finance(args):
+    """从订单（合同）模块抓真实金额/回款/产品/发货，产出受控财务数据文件。
+
+    只读接口，不写公开数据；输出默认 private/finance-source.json。
+    """
+    from .crawler import JBufaClient, load_config
+    from .order_source import build_finance_source, load_project_ids, save_source
+
+    src = args.source or FULL_JSON
+    if not os.path.exists(src):
+        print("找不到完整数据：%s\n先运行 python -m app.main crawl" % src)
+        return 1
+    with open(src, "r", encoding="utf-8") as f:
+        full = json.load(f)
+
+    raw_path = args.raw
+    if not raw_path:
+        raw_dir = os.path.join(BASE_DIR, "output", "raw")
+        candidates = sorted(glob.glob(os.path.join(raw_dir, "projects_*.json")))
+        raw_path = candidates[-1] if candidates else ""
+    project_ids = {}
+    if raw_path and os.path.exists(raw_path):
+        project_ids = load_project_ids(raw_path)
+        print("· 项目ID映射：%d 个项目（%s）" % (len(project_ids), os.path.basename(raw_path)))
+    else:
+        print("· 未找到原始抓取行，无法读取项目详情的合同情况，将退回订单列表匹配")
+
+    client = JBufaClient(load_config())
+    client.login()
+
+    def log(i, total, no):
+        print("  [%d] %s" % (i, no))
+
+    payload = build_finance_source(client, full, extract_contract_nos, project_ids=project_ids, log=log)
+    out = args.out or os.path.join(BASE_DIR, "private", "finance-source.json")
+    os.makedirs(os.path.dirname(os.path.abspath(out)), exist_ok=True)
+    save_source(payload, out)
+    print("✓ 已抓取订单财务数据：%s" % out)
+    print("  合同 %d 份 / 线上合同总数 %d / 未匹配编号 %d 个" % (
+        len(payload["contracts"]), payload["rawContractCount"], len(payload["unmatchedContractNos"])))
+    if payload["unmatchedContractNos"]:
+        print("  未匹配：%s" % ", ".join(payload["unmatchedContractNos"]))
     return 0
 
 
@@ -160,6 +254,18 @@ def main(argv=None):
     p.add_argument("--source", default="", help="完整数据来源")
     p.add_argument("--out", default="", help="公开数据输出")
     p.set_defaults(func=cmd_publish)
+
+    p = sub.add_parser("build-contracts", help="生成受控合同数据（不发布）")
+    p.add_argument("--source", default="", help="完整数据来源，默认 output/data.full.json")
+    p.add_argument("--finance", default="", help="财务导出 JSON（合同金额、回款、产品、发货）")
+    p.add_argument("--out", default="", help="输出路径，默认 private/contracts.json")
+    p.set_defaults(func=cmd_build_contracts)
+
+    p = sub.add_parser("crawl-finance", help="从订单模块抓真实合同金额/回款/产品/发货（不发布）")
+    p.add_argument("--source", default="", help="完整数据来源，默认 output/data.full.json")
+    p.add_argument("--raw", default="", help="原始抓取行（含项目ID），默认 output/raw 下最新文件")
+    p.add_argument("--out", default="", help="输出路径，默认 private/finance-source.json")
+    p.set_defaults(func=cmd_crawl_finance)
 
     p = sub.add_parser("validate", help="校验数据")
     p.add_argument("--source", default="", help="默认 data.json")

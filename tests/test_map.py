@@ -63,6 +63,54 @@ class TestMapBuild(unittest.TestCase):
         self.assertNotIn("13800000001", text)
         self.assertNotIn("示例客户甲", text)
 
+    def test_page_has_project_kind_tabs(self):
+        out = os.path.join(self.tmp, "index.html")
+        build_page_fn(from_json=self.data_path, out=out)
+        with open(out, encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn('id="tabFiling"', text)
+        self.assertIn('id="tabDeal"', text)
+        self.assertIn("备案项目", text)
+        self.assertIn("成交项目", text)
+        self.assertIn("function kindOf(", text)
+        # 默认选中备案项目
+        self.assertIn('class="ptab on" id="tabFiling"', text)
+        # 只按真实类型字段判定，不按名称猜测
+        self.assertIn("c === '备案项目'", text)
+        self.assertIn("c === '成交项目'", text)
+
+    def test_page_has_contract_section_and_detail(self):
+        out = os.path.join(self.tmp, "index.html")
+        build_page_fn(from_json=self.data_path, out=out)
+        with open(out, encoding="utf-8") as f:
+            text = f.read()
+        self.assertIn("const CONTRACT_URL = './contracts.json'", text)
+        self.assertIn("合同信息", text)
+        self.assertIn("未回金额", text)
+        self.assertIn("回款率", text)
+        self.assertIn("合同产品明细", text)
+        self.assertIn("发货金额", text)
+        self.assertIn("合计", text)
+        self.assertIn("暂无关联合同", text)
+        self.assertIn("暂无产品明细", text)
+        self.assertIn("无权限查看合同与回款信息", text)
+        self.assertIn("合同接口异常", text)
+        # 不允许把凭证写进页面
+        self.assertNotIn("Authorization", text)
+        self.assertNotIn("Cookie", text)
+
+    def test_public_data_carries_kind_but_no_finance(self):
+        with open(self.data_path, encoding="utf-8") as f:
+            data = json.load(f)
+        for p in data["projects"]:
+            self.assertIn(p.get("pkind"), ("filing", "deal", "unknown"))
+            for key in ("contractAmount", "receivedAmount", "unreceivedAmount",
+                        "collectionRate", "products", "deliveries", "shippedAmount", "contractNo"):
+                self.assertIn(p.get(key), ("", [], None), key)
+        header = data["rows"][0]
+        for name in ("合同金额", "合同编号", "回款", "发货金额"):
+            self.assertNotIn(name, header)
+
     def test_verify_rejects_credential_leak(self):
         bad = os.path.join(self.tmp, "bad.html")
         with open(bad, "w", encoding="utf-8") as f:

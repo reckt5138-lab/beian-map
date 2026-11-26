@@ -14,6 +14,13 @@ data.prev.json
 *.xlsx
 _feishu_upload.csv
 
+# ===== 合同与财务（受控数据，绝不入库、绝不发布）=====
+private/
+contracts.json
+contracts.*.json
+finance*.json
+!tests/fixtures/contracts.mock.json
+
 # ===== 生成物 =====
 # 说明：index.html 与 data.json 需要进仓库（都是脱敏版，网页靠它取云端最新数据）。
 dist/

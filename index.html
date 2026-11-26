@@ -250,6 +250,85 @@
 
   /* ================= 手机端 ================= */
   .fab{display:none;}
+  /* ====== 项目分类导航 ====== */
+  .proj-tabs{
+    display:flex;align-items:center;gap:8px;padding:9px 16px;flex-shrink:0;
+    background:rgba(255,255,255,.94);border-bottom:1px solid var(--line);z-index:590;
+  }
+  .ptab{
+    display:flex;align-items:center;gap:7px;padding:8px 20px;border-radius:10px;cursor:pointer;
+    border:1px solid #dbe4f0;background:#fff;color:var(--ink-2);
+    font-family:inherit;font-size:13px;font-weight:600;line-height:1.2;transition:.15s;
+  }
+  .ptab:hover{border-color:#bfd3f5;color:var(--brand);}
+  .ptab.on{background:var(--brand);border-color:var(--brand);color:#fff;box-shadow:0 4px 12px rgba(29,78,216,.18);}
+  .ptab .n{font-size:11.5px;font-weight:500;padding:1px 7px;border-radius:999px;background:#f1f5fb;color:var(--ink-3);}
+  .ptab.on .n{background:rgba(255,255,255,.2);color:#fff;}
+  .ptab-tip{margin-left:auto;font-size:11.5px;color:var(--ink-3);white-space:nowrap;}
+  .map-empty{
+    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:520;
+    background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:12px;
+    padding:14px 20px;font-size:13px;color:var(--ink-2);box-shadow:var(--shadow);text-align:center;
+    max-width:78%;line-height:1.6;pointer-events:none;
+  }
+
+  /* ====== 合同信息 ====== */
+  .contract-loading,.contract-empty,.contract-note{font-size:12.5px;line-height:1.6;color:var(--ink-3);padding:4px 0;}
+  .contract-note.warn{color:#b45309;}
+  .contract-note.bad{color:var(--danger);}
+  .c-item{border:1px solid var(--line);border-radius:11px;padding:10px 12px;margin-top:8px;background:#fbfcff;}
+  .c-item + .c-item{margin-top:8px;}
+  .c-top{display:flex;align-items:center;gap:8px;justify-content:space-between;}
+  .c-no{
+    border:0;background:none;padding:0;cursor:pointer;text-align:left;font-family:inherit;
+    color:var(--brand);font-size:13px;font-weight:600;line-height:1.4;text-decoration:underline;
+    text-underline-offset:2px;word-break:break-all;
+  }
+  .c-no:hover{color:#0b3ea8;}
+  .c-flag{font-size:10.5px;color:var(--ink-3);background:#f1f4f9;padding:2px 6px;border-radius:5px;flex-shrink:0;}
+  .c-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px 12px;margin-top:9px;}
+  .c-k{display:block;font-size:11px;color:var(--ink-3);margin-bottom:2px;}
+  .c-v{display:block;font-size:13px;font-weight:600;text-align:right;font-variant-numeric:tabular-nums;}
+  .c-v.unpaid{color:#b45309;}
+  .c-v.muted{color:var(--ink-3);font-weight:500;}
+  .c-rate{margin-top:9px;}
+  .c-rate-top{display:flex;align-items:baseline;justify-content:space-between;font-size:11.5px;color:var(--ink-3);}
+  .c-rate-top b{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;}
+  .ratebar{height:5px;background:#eef2f8;border-radius:4px;overflow:hidden;margin-top:5px;}
+  .ratebar span{display:block;height:100%;background:var(--ok);border-radius:4px;}
+  .ratebar.low span{background:var(--warn);}
+  .ratebar.zero span{background:var(--danger);}
+
+  /* ====== 合同详情 ====== */
+  .c-back{
+    display:inline-flex;align-items:center;gap:6px;border:1px solid #dbe4f0;background:#fff;
+    color:var(--ink-2);font-family:inherit;font-size:12.5px;padding:6px 11px;border-radius:8px;cursor:pointer;
+  }
+  .c-back:hover{border-color:#bfd3f5;color:var(--brand);}
+  .c-summary{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:12px;background:#fbfcff;}
+  .c-summary-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .c-summary-no{font-size:14px;font-weight:700;word-break:break-all;}
+  .c-summary-rate{font-size:12px;color:var(--ink-3);}
+  .c-summary-rate b{font-size:18px;color:var(--ink);margin-right:2px;}
+  .c-sum4{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+  .c-cell{background:#fff;border:1px solid #e9eff8;border-radius:9px;padding:8px 10px;}
+  .c-cell .k{font-size:11px;color:var(--ink-3);}
+  .c-cell .v{font-size:14px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums;margin-top:2px;}
+  .c-cell.hot .v{color:#b45309;}
+  .c-warns{margin-top:10px;padding:8px 10px;border-radius:8px;background:#fff8ec;border:1px solid #f6e0b8;}
+  .c-warns div{font-size:11.5px;line-height:1.6;color:#8a5a10;}
+  .c-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-top:12px;border:1px solid var(--line);border-radius:10px;}
+  .c-table{width:100%;min-width:470px;border-collapse:collapse;font-size:12.5px;background:#fff;}
+  .c-table th,.c-table td{padding:8px 10px;border-bottom:1px solid #edf1f7;white-space:nowrap;}
+  .c-table th{background:#f4f7fc;font-weight:600;color:var(--ink-2);text-align:right;}
+  .c-table th:nth-child(1),.c-table th:nth-child(2){text-align:left;}
+  .c-table td:nth-child(1),.c-table td:nth-child(2){text-align:left;white-space:normal;}
+  .c-table td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .c-table tr.total td{font-weight:700;background:#f7f9fd;border-top:1px solid #dbe4f0;}
+  .c-table .muted{color:var(--ink-3);}
+  .c-empty{padding:18px 10px;text-align:center;color:var(--ink-3);font-size:12.5px;}
+  .c-sec-title{margin:14px 0 2px;font-size:12.5px;font-weight:600;color:var(--ink-2);}
+
   @media (max-width:820px){
     body{overflow:hidden;}
     .topbar{height:auto;min-height:58px;padding:9px 12px;gap:8px;flex-wrap:wrap;align-items:flex-start;}
@@ -263,6 +342,12 @@
     .stats::-webkit-scrollbar{display:none;}
     .stat{padding:5px 9px;font-size:11px;border-radius:8px;flex-shrink:0;}
     .stat b{font-size:13.5px;}
+
+    .proj-tabs{padding:8px 10px;gap:7px;}
+    .ptab{flex:1;justify-content:center;padding:9px 8px;font-size:13px;border-radius:9px;}
+    .ptab-tip{display:none;}
+    .c-grid{grid-template-columns:1fr 1fr;gap:6px 8px;}
+    .c-table{min-width:430px;font-size:12px;}
 
 
     aside{
@@ -340,8 +425,16 @@
   <div class="hint" id="hintBtn" style="cursor:pointer">数据来源：云端 data.json · 点此刷新</div>
 </header>
 
+<nav class="proj-tabs" id="projTabs">
+  <button class="ptab on" id="tabFiling" data-kind="filing" aria-selected="true">备案项目<span class="n" id="tabNFiling">—</span></button>
+  <button class="ptab" id="tabDeal" data-kind="deal" aria-selected="false">成交项目<span class="n" id="tabNDeal">—</span></button>
+  <span class="ptab-tip" id="tabTip"></span>
+</nav>
+
 <div class="stage">
   <div id="map"></div>
+
+  <div class="map-empty" id="mapEmpty" hidden></div>
 
   <aside id="sidebar">
     <div class="p-head">
@@ -386,6 +479,7 @@
    只请求这一个地址：没有多数据源切换、没有 GitHub Raw / jsDelivr、
    没有飞书接口、没有本地备用 JSON、没有内置快照、没有缓存兜底。 */
 const DATA_URL = './data.json';
+const CONTRACT_URL = './contracts.json';   /* 受控合同数据：需后端鉴权，公开站默认无此文件 */
 const FETCH_TIMEOUT = 15000;   // 云端可能较慢，给足 15 秒
 
 let PROJECTS = [];
@@ -409,6 +503,17 @@ const LEVEL_TEXT = {danger:'7 天内', warn:'8–14 天', ok:'15 天以上', exp
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function inBeijing(p){ return p.lat && p.lng && p.lat > 39.3 && p.lat < 41.2 && p.lng > 115.2 && p.lng < 117.6; }
 function leftText(n){ if(n===null) return '—'; return n < 0 ? '已失效 ' + Math.abs(n) + ' 天' : n + ' 天'; }
+
+/* 项目分类：优先读后端派生的 pkind；旧数据按“项目分类”真实值回退，绝不用名称猜。 */
+const KINDS = ['filing','deal','unknown'];
+function kindOf(p){
+  if(p && KINDS.indexOf(p.pkind) >= 0) return p.pkind;
+  const c = String((p && p.classify) || '').replace(/\u3000/g,' ').trim();
+  if(c === '备案项目') return 'filing';
+  if(c === '成交项目' || c === '成交') return 'deal';
+  return 'unknown';
+}
+function kindProjects(){ return PROJECTS.filter(p => kindOf(p) === state.kind); }
 
 /* WGS84 → GCJ-02：坐标按高德底图纠偏，避免整体偏移 */
 const PI = Math.PI, AXIS = 6378245.0, ECC = 0.00669342162296594323;
@@ -488,7 +593,7 @@ function markerIcon(p){
 
 function buildMarkers(){
   Object.keys(markers).forEach(k => { map.removeLayer(markers[k]); delete markers[k]; });
-  PROJECTS.filter(inBeijing).forEach(p => {
+  kindProjects().filter(inBeijing).forEach(p => {
     const m = L.marker([p.mlat, p.mlng], {icon: markerIcon(p), riseOnHover:true, title:p.name}).addTo(map);
     m.bindTooltip(tipHTML(p, false), {className:'proj-tip', direction:'auto', offset:[pinSize()/2+4,0], opacity:1, sticky:false});
     m.bindPopup(tipHTML(p, true), {
@@ -525,7 +630,8 @@ function tipHTML(p, withMenu){
 }
 
 /* ================= 状态与列表 ================= */
-const state = {q:'', filter:'all', sel:null};
+const state = {q:'', filter:'all', sel:null, kind:'filing', contract:null};
+const KIND_LABEL = {filing:'备案项目', deal:'成交项目', unknown:'未分类'};
 const FILTERS = [
   {k:'all',   t:'全部'},
   {k:'danger',t:'7 天内'},
@@ -535,7 +641,7 @@ const FILTERS = [
 
 function filtered(){
   const q = state.q.trim();
-  return PROJECTS.filter(p => {
+  return kindProjects().filter(p => {
     if(state.filter !== 'all' && level(p) !== state.filter) return false;
     if(!q) return true;
     const hay = [p.name,p.addr,p.customer,p.owner,p.product,p.stage,p.desc,p.lastRecord].join(' ').toLowerCase();
@@ -548,12 +654,13 @@ function filtered(){
 }
 
 function renderStats(){
-  const bj = PROJECTS.filter(inBeijing);
-  const d7 = PROJECTS.filter(p=>{const n=daysLeft(p); return n!==null && n>=0 && n<=7;}).length;
-  const d14 = PROJECTS.filter(p=>{const n=daysLeft(p); return n!==null && n>=0 && n<=14;}).length;
-  const out = PROJECTS.length - bj.length;
+  const kp = kindProjects();
+  const bj = kp.filter(inBeijing);
+  const d7 = kp.filter(p=>{const n=daysLeft(p); return n!==null && n>=0 && n<=7;}).length;
+  const d14 = kp.filter(p=>{const n=daysLeft(p); return n!==null && n>=0 && n<=14;}).length;
+  const out = kp.length - bj.length;
   document.getElementById('stats').innerHTML =
-    '<div class="stat"><b>'+bj.length+'</b>北京项目</div>'
+    '<div class="stat"><b>'+bj.length+'</b>'+KIND_LABEL[state.kind]+'·北京</div>'
     + '<div class="stat danger"><b>'+d7+'</b>7 天内失效</div>'
     + '<div class="stat warn"><b>'+d14+'</b>14 天内失效</div>'
     + '<div class="stat"><b>'+out+'</b>异地项目</div>';
@@ -565,8 +672,9 @@ function district(addr){
 }
 
 function renderChips(){
-  const counts = {all:PROJECTS.length, danger:0, warn:0, ok:0};
-  PROJECTS.forEach(p=>{ const lv = level(p); if(counts[lv]!==undefined) counts[lv]++; });
+  const kp = kindProjects();
+  const counts = {all:kp.length, danger:0, warn:0, ok:0};
+  kp.forEach(p=>{ const lv = level(p); if(counts[lv]!==undefined) counts[lv]++; });
   document.getElementById('chips').innerHTML = FILTERS.map(f =>
     '<button class="chip'+(state.filter===f.k?' on':'')+'" data-k="'+f.k+'">'+f.t+'<span class="n">'+counts[f.k]+'</span></button>'
   ).join('');
@@ -576,7 +684,11 @@ function renderChips(){
 function renderList(){
   const arr = filtered();
   const el = document.getElementById('list');
-  if(!arr.length){ el.innerHTML = '<div class="empty">没有匹配的项目</div>'; return; }
+  if(!arr.length){
+    const kp = kindProjects().length;
+    el.innerHTML = '<div class="empty">'+(kp ? '没有匹配的项目' : '当前分类暂无项目')+'</div>';
+    return;
+  }
   el.innerHTML = arr.map((p,i) => {
     const n = daysLeft(p), lv = level(p);
     const cls = 'p-' + lv;
@@ -592,6 +704,53 @@ function renderList(){
   }).join('');
   el.querySelectorAll('.row').forEach(r => r.onclick = () => select(+r.dataset.id, true));
 }
+
+/* 分类 Tab：切换只换数据源视图，不重载页面、不重建地图实例 */
+function renderTabs(){
+  const f = document.getElementById('tabFiling'), d = document.getElementById('tabDeal');
+  if(!f || !d) return;
+  f.classList.toggle('on', state.kind === 'filing');
+  d.classList.toggle('on', state.kind === 'deal');
+  f.setAttribute('aria-selected', state.kind === 'filing' ? 'true' : 'false');
+  d.setAttribute('aria-selected', state.kind === 'deal' ? 'true' : 'false');
+  document.getElementById('tabNFiling').textContent = PROJECTS.filter(p=>kindOf(p)==='filing').length;
+  document.getElementById('tabNDeal').textContent = PROJECTS.filter(p=>kindOf(p)==='deal').length;
+  const unknown = PROJECTS.filter(p=>kindOf(p)==='unknown').length;
+  document.getElementById('tabTip').textContent = unknown ? ('另有 ' + unknown + ' 个项目类型无法确认，未归入任何分类') : '';
+}
+
+function mapEmptyHint(){
+  const el = document.getElementById('mapEmpty');
+  if(!PROJECTS.length){ el.hidden = true; return; }
+  const kp = kindProjects();
+  if(!kp.length){
+    el.hidden = false;
+    el.innerHTML = KIND_LABEL[state.kind] + '当前没有项目<br><span style="font-size:11.5px;color:var(--ink-3)">可切换上方导航查看另一类项目</span>';
+  }else if(!kp.filter(inBeijing).length){
+    el.hidden = false;
+    el.textContent = KIND_LABEL[state.kind] + '暂无北京范围项目（共 ' + kp.length + ' 个异地项目，可在列表中查看）';
+  }else{
+    el.hidden = true;
+  }
+}
+
+function setKind(kind){
+  if(kind === state.kind || (kind !== 'filing' && kind !== 'deal')) return;
+  state.kind = kind;
+  state.sel = null;
+  state.contract = null;
+  Object.keys(markers).forEach(k => { markers[k].closePopup(); markers[k].closeTooltip(); });
+  document.getElementById('drawer').classList.remove('open');
+  document.querySelectorAll('.pin').forEach(x => x.classList.remove('sel'));
+  buildMarkers();
+  renderTabs(); renderStats(); renderChips(); renderList(); mapEmptyHint();
+  document.getElementById('fabN').textContent = kindProjects().length;
+}
+document.getElementById('projTabs').addEventListener('click', e => {
+  const b = e.target.closest ? e.target.closest('.ptab') : null;
+  if(!b) return;
+  setKind(b.dataset.kind);
+});
 
 /* ================= 详情 ================= */
 function kv(rows){
@@ -658,6 +817,10 @@ function renderDetail(p){
     ['客户地址', p.customerAddr]
   ]) + '</div>';
 
+  /* 合同信息：紧接「项目来源」所在的项目信息之后 */
+  html += '<div class="sec" id="contractSec"><h5>合同信息</h5>'
+    + '<div id="contractBox"><div class="contract-loading">正在读取合同信息…</div></div></div>';
+
   html += '<div class="sec"><h5>跟进记录</h5>';
   if(p.signs && p.signs.length){
     html += '<div class="timeline">' + p.signs.slice(0, 40).map(s =>
@@ -678,11 +841,13 @@ function renderDetail(p){
 
   document.getElementById('dBody').innerHTML = html;
   document.getElementById('dBody').scrollTop = 0;
+  hydrateContracts(p);
 }
 
 /* ================= 交互 ================= */
 function select(id, pan){
   state.sel = id;
+  state.contract = null;
   const p = PROJECTS[id];
   renderDetail(p);
   if(markers[id]) markers[id].closePopup();
@@ -706,6 +871,8 @@ function select(id, pan){
 function closeDrawer(){
   document.getElementById('drawer').classList.remove('open');
   state.sel = null;
+  state.contract = null;
+  CONTRACTS.current = [];
   document.querySelectorAll('.pin').forEach(x => x.classList.remove('sel'));
   renderList();
   if(isMobile()){
@@ -795,6 +962,193 @@ window.addEventListener('resize', () => {
   }, 220);
 });
 
+/* ================= 合同信息（受控数据） ================= */
+/* 合同金额、回款、产品与发货属于敏感财务数据，只允许来自受控接口。
+   公开站若未部署 ./contracts.json 则明确提示“未接入”，绝不用前端假数据填充。 */
+const CONTRACTS = {loaded:false, status:'idle', data:null, error:'', current:[]};
+
+function moneyText(v){
+  if(v === null || v === undefined || v === '') return '暂无数据';
+  return '¥' + v;
+}
+function rateText(v){
+  if(v === null || v === undefined || v === '') return '暂无数据';
+  return v + '%';
+}
+function rateBar(rate){
+  const n = parseFloat(rate);
+  const w = isNaN(n) ? 0 : Math.min(100, Math.max(0, n));
+  const cls = w <= 0 ? ' zero' : (w < 60 ? ' low' : '');
+  return '<div class="ratebar'+cls+'"><span style="width:'+w+'%"></span></div>';
+}
+
+async function fetchContracts(force){
+  if(CONTRACTS.loaded && !force) return CONTRACTS;
+  CONTRACTS.loaded = true; CONTRACTS.status = 'loading'; CONTRACTS.error = '';
+  try{
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), FETCH_TIMEOUT);
+    let r;
+    try{
+      r = await fetch(CONTRACT_URL, {cache:'no-store', signal: ctl.signal});
+    }finally{
+      clearTimeout(timer);
+    }
+    if(r.status === 401 || r.status === 403){ CONTRACTS.status = 'no_permission'; return CONTRACTS; }
+    if(r.status === 404){ CONTRACTS.status = 'not_configured'; return CONTRACTS; }
+    if(!r.ok){ CONTRACTS.status = 'error'; CONTRACTS.error = 'HTTP ' + r.status; return CONTRACTS; }
+    let j;
+    try{ j = await r.json(); }catch(_){ CONTRACTS.status = 'error'; CONTRACTS.error = '合同数据不是合法 JSON'; return CONTRACTS; }
+    if(!j || typeof j !== 'object' || !j.projects){
+      CONTRACTS.status = 'error'; CONTRACTS.error = '合同数据结构不正确'; return CONTRACTS;
+    }
+    CONTRACTS.data = j;
+    CONTRACTS.status = 'ok';
+  }catch(e){
+    CONTRACTS.status = 'error';
+    CONTRACTS.error = msg(e);
+  }
+  return CONTRACTS;
+}
+
+function contractNote(text, cls){
+  return '<div class="contract-note'+(cls ? ' '+cls : '')+'">'+esc(text)+'</div>';
+}
+
+function contractItemHTML(c, idx){
+  const rate = c.collectionRate;
+  return '<div class="c-item">'
+    + '<div class="c-top">'
+    + '<button type="button" class="c-no" data-ci="'+idx+'" title="查看合同详情">'+esc(c.contractNo || '未编号合同')+'</button>'
+    + '<span class="c-flag">'+esc(c.contractStatus || '合同')+'</span>'
+    + '</div>'
+    + '<div class="c-grid">'
+    + '<div><span class="c-k">合同金额</span><span class="c-v">'+esc(moneyText(c.contractAmount))+'</span></div>'
+    + '<div><span class="c-k">未回金额</span><span class="c-v'+((c.unreceivedAmount && parseFloat(String(c.unreceivedAmount).replace(/,/g,''))>0) ? ' unpaid' : '')+'">'+esc(moneyText(c.unreceivedAmount))+'</span></div>'
+    + '</div>'
+    + '<div class="c-rate">'
+    + '<div class="c-rate-top"><span>回款率</span><b>'+esc(rateText(rate))+'</b></div>'
+    + (rate ? rateBar(rate) : '')
+    + '</div>'
+    + ((c.contractStatus && c.contractStatus !== '已通过')
+        ? contractNote('合同状态为「'+c.contractStatus+'」，回款尚未生效')
+        : (c.isSubContract ? contractNote('补充协议/修订合同，回款并入主合同') : ''))
+    + '</div>';
+}
+
+function contractsHTML(st, p){
+  if(st.status === 'not_configured') return contractNote('合同财务数据尚未接入受控接口，当前仅能查看项目公开信息。', 'warn');
+  if(st.status === 'no_permission') return contractNote('无权限查看合同与回款信息，请联系业务管理员开通。', 'bad');
+  if(st.status === 'error') return contractNote('合同接口异常：' + (st.error || '未知错误'), 'bad')
+    + '<div class="contract-note"><button type="button" class="c-back" id="cRetry">重新加载合同信息</button></div>';
+  if(st.status !== 'ok') return contractNote('正在读取合同信息…');
+
+  const bucket = st.data.projects || {};
+  const entry = bucket[p.name] || null;
+  CONTRACTS.current = [];
+  if(!entry) return contractNote('暂无关联合同');
+  if(entry.status === 'no_contract' || !(entry.contracts || []).length) return contractNote('暂无关联合同');
+  CONTRACTS.current = entry.contracts;
+  let html = '';
+  if(entry.status === 'no_finance_record' || entry.status === 'source_not_configured'){
+    html += contractNote('已关联合同编号，但合同金额与回款数据尚未由财务系统提供。', 'warn');
+  }
+  html += entry.contracts.map((c, i) => contractItemHTML(c, i)).join('');
+  return html;
+}
+
+async function hydrateContracts(p){
+  const st = await fetchContracts();
+  if(state.sel !== p._id || state.contract) return;
+  const box = document.getElementById('contractBox');
+  if(!box) return;
+  box.innerHTML = contractsHTML(st, p);
+}
+
+function renderContractDetail(p, c){
+  document.getElementById('dTitle').textContent = '合同详情 · ' + (c.contractNo || '未编号合同');
+  const anomalies = (c.anomalies || []).map(a => a && a.message).filter(Boolean);
+  if(c.contractStatus && c.contractStatus !== '已通过'){
+    anomalies.unshift('合同状态为「'+c.contractStatus+'」，回款尚未生效');
+  }else if(c.isSubContract){
+    anomalies.unshift('补充协议/修订合同，金额为本行金额，产品与回款按主合同汇总');
+  }
+  let html = '';
+  html += '<button type="button" class="c-back" id="cBack">‹ 返回项目详情</button>';
+
+  html += '<div class="c-summary">'
+    + '<div class="c-summary-top">'
+    + '<div class="c-summary-no">'+esc(c.contractNo || '未编号合同')+' <span class="c-flag">'+esc(c.contractStatus || '合同')+'</span></div>'
+    + '<div class="c-summary-rate">回款率<b>'+esc(rateText(c.collectionRate))+'</b></div>'
+    + '</div>'
+    + (c.collectionRate ? rateBar(c.collectionRate) : '')
+    + '<div class="c-sum4">'
+    + '<div class="c-cell"><div class="k">合同金额</div><div class="v">'+esc(moneyText(c.contractAmount))+'</div></div>'
+    + '<div class="c-cell"><div class="k">已回款金额</div><div class="v">'+esc(moneyText(c.receivedAmount))+'</div></div>'
+    + '<div class="c-cell hot"><div class="k">未回金额</div><div class="v">'+esc(moneyText(c.unreceivedAmount))+'</div></div>'
+    + '<div class="c-cell"><div class="k">产品数量</div><div class="v">'+(c.products||[]).length+' 项</div></div>'
+    + '</div></div>';
+
+  if(anomalies.length){
+    html += '<div class="c-warns">' + anomalies.slice(0, 6).map(m => '<div>⚠ '+esc(m)+'</div>').join('') + '</div>';
+  }
+
+  html += '<div class="c-sec-title">合同产品明细</div>';
+  if(c.products && c.products.length){
+    html += '<div class="c-table-wrap"><table class="c-table">'
+      + '<thead><tr><th>序号</th><th>产品名称</th><th>合同金额</th><th>发货金额</th></tr></thead><tbody>'
+      + c.products.map(r =>
+          '<tr><td>'+(r.seq||'')+'</td><td>'+esc(r.name||'—')+'</td>'
+          + '<td class="num'+(!r.contractAmount?' muted':'')+'">'+esc(r.contractAmount ? '¥'+r.contractAmount : '暂无数据')+'</td>'
+          + '<td class="num'+(!r.shippedAmount?' muted':'')+'">'+esc(r.shippedAmount ? '¥'+r.shippedAmount : '暂无数据')+'</td></tr>'
+        ).join('')
+      + '<tr class="total"><td colspan="2">合计</td>'
+      + '<td class="num">'+esc(c.totalContractAmount ? '¥'+c.totalContractAmount : '暂无数据')+'</td>'
+      + '<td class="num">'+esc(c.totalShippedAmount ? '¥'+c.totalShippedAmount : '暂无数据')+'</td></tr>'
+      + '</tbody></table></div>';
+    if(c.productsIncomplete){
+      html += '<div class="contract-note">部分产品金额缺失，合计仅统计已有金额的产品。</div>';
+    }
+  }else{
+    html += '<div class="c-empty">暂无产品明细</div>';
+  }
+
+  document.getElementById('dBody').innerHTML = html;
+  document.getElementById('dBody').scrollTop = 0;
+}
+
+function openContract(idx){
+  const c = CONTRACTS.current[idx];
+  const p = PROJECTS[state.sel];
+  if(!c || !p) return;
+  state.contract = {projectId: p._id, contractNo: c.contractNo};
+  renderContractDetail(p, c);
+}
+
+function backToProject(){
+  const p = PROJECTS[state.sel];
+  if(!p){ closeDrawer(); return; }
+  state.contract = null;
+  renderDetail(p);
+}
+
+document.getElementById('dBody').addEventListener('click', e => {
+  const t = e.target;
+  const no = t.closest ? t.closest('.c-no') : null;
+  if(no){ e.preventDefault(); openContract(+no.dataset.ci); return; }
+  const back = t.closest ? t.closest('#cBack') : null;
+  if(back){ e.preventDefault(); backToProject(); return; }
+  const retry = t.closest ? t.closest('#cRetry') : null;
+  if(retry){
+    e.preventDefault();
+    const box = document.getElementById('contractBox');
+    if(box) box.innerHTML = '<div class="contract-loading">正在重新加载合同信息…</div>';
+    CONTRACTS.loaded = false;
+    const p = PROJECTS[state.sel];
+    if(p) hydrateContracts(p);
+  }
+});
+
 /* ================= 数据加载 ================= */
 function setStatus(txt, bad){
   const el = document.getElementById('srcLine');
@@ -867,16 +1221,20 @@ async function bootstrap(){
     };
     applyGeo(PROJECTS);
     buildMarkers();
-    renderStats(); renderChips(); renderList();
-    fabN.textContent = PROJECTS.length;
+    renderTabs(); renderStats(); renderChips(); renderList(); mapEmptyHint();
+    document.getElementById('fabN').textContent = kindProjects().length;
     document.title = '北京备案项目地图' + (DATA_META.updated ? ' · ' + DATA_META.updated.slice(0, 10) : '');
-    setStatus('云端数据 ' + (DATA_META.updated ? DATA_META.updated.slice(5, 16) : '') + ' · ' + PROJECTS.length + ' 条');
+    setStatus('云端数据 ' + (DATA_META.updated ? DATA_META.updated.slice(5, 16) : '') + ' · 共 ' + PROJECTS.length + ' 条');
   }catch(e){
     PROJECTS = [];
     DATA_META = { updated: '', source: '', count: 0 };
     document.getElementById('stats').innerHTML = '';
     document.getElementById('chips').innerHTML = '';
     document.getElementById('list').innerHTML = '';
+    document.getElementById('tabNFiling').textContent = '—';
+    document.getElementById('tabNDeal').textContent = '—';
+    document.getElementById('tabTip').textContent = '';
+    document.getElementById('mapEmpty').hidden = true;
     document.getElementById('fab').style.display = 'none';
     fabN.textContent = '';
     document.title = '北京备案项目地图';
@@ -889,7 +1247,17 @@ async function bootstrap(){
   const autoOpen = new URLSearchParams(location.search).get('open');
   if(autoOpen !== null && PROJECTS.length){
     const id = Number(autoOpen);
-    if(!isNaN(id) && PROJECTS[id]) select(id, true);
+    const p = PROJECTS[id];
+    if(p){
+      const k = kindOf(p);
+      if(k === 'deal' || k === 'filing'){
+        state.kind = k;
+        buildMarkers();
+        renderTabs(); renderStats(); renderChips(); renderList(); mapEmptyHint();
+        document.getElementById('fabN').textContent = kindProjects().length;
+      }
+      select(id, true);
+    }
   }
   setTimeout(()=>map.invalidateSize(), 200);
 }

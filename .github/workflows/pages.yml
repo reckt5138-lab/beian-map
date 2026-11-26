@@ -1,0 +1,87 @@
+name: 发布地图站点（Pages）
+
+# 只做一件事：把仓库里已生成的 index.html + 脱敏 data.json 发布到 GitHub Pages。
+# 不抓数、不需要账号密码，push 到 main 即可上线；每日抓数仍由 daily.yml 负责。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - data.json
+      - .github/workflows/pages.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+env:
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 拉代码
+        uses: actions/checkout@v4
+
+      - name: 准备 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 发布前安全检查（白名单 / 无财务字段 / 无凭证）
+        run: |
+          python - <<'PY'
+          import json, re, sys
+          sys.path.insert(0, ".")
+          from app.security import assert_safe
+          from app.finance import assert_no_finance
+          data = json.load(open("data.json", encoding="utf-8"))
+          ok, problems = assert_safe(data)
+          if not ok:
+              print("公开数据未通过白名单自检：")
+              [print("  -", p) for p in problems]
+              raise SystemExit(1)
+          ok_fin, fin_problems = assert_no_finance(data)
+          if not ok_fin:
+              print("公开数据含财务字段：")
+              [print("  -", p) for p in fin_problems]
+              raise SystemExit(1)
+          html = open("index.html", encoding="utf-8").read()
+          for pat in (r"ghp_[A-Za-z0-9]{20,}", r"cli_[a-z0-9]{10,}", r'"password"\s*:\s*"[^"]{3,}"'):
+              if re.search(pat, html):
+                  print("网页疑似包含凭证", pat)
+                  raise SystemExit(1)
+          print("安全检查通过：%d 条 / %d 列（脱敏）" % (data["count"], data["columns"]))
+          PY
+
+      - name: 整理发布目录（只放 index.html 与脱敏 data.json）
+        run: |
+          mkdir -p site
+          cp index.html data.json site/
+          test -s site/index.html
+          test -s site/data.json
+          ls -lh site
+
+      - name: 准备 Pages 站点
+        uses: actions/configure-pages@v5
+
+      - name: 打包 Pages 站点
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: 发布到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

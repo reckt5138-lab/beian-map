@@ -97,8 +97,9 @@ DEFAULT_CONFIG = {
     "crawl": {
         # 100 = 网页里的“全部项目”（一次返回全部分类，再按 status_filter 过滤）
         "tab_types": [100],
-        # 只导出这些“项目分类”，留空 [] 表示不过滤（会把成交/丢失/失效也算进来）
-        "status_filter": ["备案项目"],
+        # 只导出这些“项目状态”，留空 [] 表示不过滤（会把丢失/失效/非备案人报价也算进来）
+        # 取值以接口为准：备案项目 / 成交；网页 Tab 文案“成交项目”会自动展开为“成交”
+        "status_filter": ["备案项目", "成交"],
         "page_size": 50,
         "max_pages": 500,
         "request_interval": 0.15,
@@ -497,6 +498,42 @@ def row_key(row):
     return "%s|%s" % (row.get("projectName") or "", row.get("createTime") or row.get("createdTime") or "")
 
 
+# 网页 Tab 文案 与 列表接口 projectStatus 实际取值 的对应关系。
+# 实测（2026-11-25）：projectStatus = 备案项目 21 / 成交 12 / 失效 3 / 丢失 2 / 非备案人报价项目 1。
+# 若只按「成交项目」过滤，12 条成交项目会被全部丢掉，所以这里做别名展开。
+STATUS_ALIASES = {
+    "备案项目": ("备案项目", "备案"),
+    "成交项目": ("成交项目", "成交"),
+}
+
+
+def expand_status_filter(wanted):
+    values = set()
+    for item in wanted or []:
+        text = str(item or "").strip()
+        if not text:
+            continue
+        values.add(text)
+        values.update(STATUS_ALIASES.get(text, ()))
+    return values
+
+
+def filter_rows_by_status(rows, wanted):
+    """按项目状态过滤；wanted 为空表示不过滤。返回 (kept, dropped_counts)。"""
+    values = expand_status_filter(wanted)
+    if not values:
+        return list(rows), {}
+    kept = []
+    dropped = {}
+    for row in rows:
+        status = str(row.get("projectStatus") or "").strip()
+        if status in values:
+            kept.append(row)
+        else:
+            dropped[status or "(空)"] = dropped.get(status or "(空)", 0) + 1
+    return kept, dropped
+
+
 def crawl_list(client, cfg):
     tabs = cfg["crawl"]["tab_types"]
     page_size = int(cfg["crawl"]["page_size"])
@@ -543,11 +580,10 @@ def crawl_list(client, cfg):
     rows = list(collected.values())
     wanted = cfg["crawl"].get("status_filter") or []
     if wanted:
-        kept = [r for r in rows if (r.get("projectStatus") or "") in wanted]
-        dropped = len(rows) - len(kept)
-        logging.info("按项目分类过滤（%s）：保留 %d 条，剔除 %d 条（成交/丢失/失效/非备案人等）",
-                     "、".join(wanted), len(kept), dropped)
-        rows = kept
+        rows, dropped = filter_rows_by_status(rows, wanted)
+        logging.info("按项目分类过滤（%s）：保留 %d 条；剔除 %d 条（%s）",
+                     "、".join(wanted), len(rows), sum(dropped.values()),
+                     "、".join("%s:%d" % (k, v) for k, v in sorted(dropped.items())))
     return rows, stats
 
 

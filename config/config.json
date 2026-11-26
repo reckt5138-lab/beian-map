@@ -24,9 +24,7 @@
     "tab_types": [
       100
     ],
-    "status_filter": [
-      "备案项目"
-    ],
+    "status_filter": ["备案项目", "成交"],
     "page_size": 50,
     "max_pages": 500,
     "request_interval": 0.15,
@@ -61,3 +59,4 @@
     "branch": "main"
   }
 }
+

@@ -28,8 +28,28 @@ def free_port(preferred):
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
+    # 本地预览时可选的受控合同数据文件；None 表示未接入（前端会显示“尚未接入”）
+    contract_file = None
+
     def log_message(self, fmt, *args):
         pass  # 安静模式，避免刷屏
+
+    def do_GET(self):
+        if self.path.split("?")[0] == "/contracts.json":
+            path = self.contract_file
+            if not path or not os.path.exists(path):
+                self.send_error(404, "contracts not configured")
+                return
+            with open(path, "rb") as f:
+                body = f.read()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("X-Restricted-Data", "finance")
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        super().do_GET()
 
     def end_headers(self):
         self.send_header("Cache-Control", "no-store")
@@ -40,15 +60,26 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=8080)
     ap.add_argument("--no-browser", action="store_true")
+    ap.add_argument("--contracts", default="",
+                    help="本地预览用的受控合同 JSON（默认 private/contracts.json，存在才加载）")
     args = ap.parse_args()
 
     if not os.path.exists(os.path.join(BASE, "index.html")):
         print("✗ 还没有 index.html，先跑一次：python -m app.main publish")
         return 2
 
+    contract_path = args.contracts or os.path.join(BASE, "private", "contracts.json")
+    if os.path.exists(contract_path):
+        Handler.contract_file = contract_path
+        print("合同数据：已加载本地受控文件（仅本机 127.0.0.1 可访问）")
+    else:
+        Handler.contract_file = None
+        print("合同数据：未配置（页面会显示“尚未接入受控接口”）")
+
     port = free_port(args.port)
     handler = functools.partial(Handler, directory=BASE)
-    with socketserver.TCPServer(("127.0.0.1", port), handler) as httpd:
+    # 单线程 HTTPServer 会被浏览器的 keep-alive 连接占死，导致页面“打不开”；必须用多线程
+    with http.server.ThreadingHTTPServer(("127.0.0.1", port), handler) as httpd:
         url = "http://127.0.0.1:%d/index.html" % port
         print("本地地图已启动：%s" % url)
         print("只监听本机（127.0.0.1），局域网和手机默认访问不到；按 Ctrl+C 关闭服务。")
